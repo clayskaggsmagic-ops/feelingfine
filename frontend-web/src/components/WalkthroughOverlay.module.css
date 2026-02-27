@@ -1,0 +1,191 @@
+/* ── Walkthrough Overlay ─────────────────────────────────────────────────── */
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    /* Dark semi-transparent backdrop */
+    background: rgba(0, 0, 0, 0.6);
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* ── Spotlight Cutout ──────────────────────────────────────────────────── */
+
+.spotlight {
+    position: absolute;
+    border-radius: 12px;
+    /* Transparent hole via box-shadow — massive shadow covers everything else */
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+    z-index: 10000;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Subtle pulsing glow */
+    border: 2px solid rgba(56, 178, 172, 0.5);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        border-color: rgba(56, 178, 172, 0.4);
+    }
+
+    50% {
+        border-color: rgba(56, 178, 172, 0.8);
+    }
+}
+
+/* ── Tooltip Card ──────────────────────────────────────────────────────── */
+
+.tooltip {
+    position: absolute;
+    z-index: 10001;
+    max-width: 340px;
+    width: calc(100vw - 32px);
+    background: rgba(255, 255, 255, 0.97);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.2);
+    animation: tooltipIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tooltipCenter {
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%);
+}
+
+@keyframes tooltipIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.tooltipCenter {
+    animation-name: tooltipCenterIn;
+}
+
+@keyframes tooltipCenterIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+.tooltipEmoji {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    line-height: 1;
+}
+
+.tooltipTitle {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--ff-color-text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.tooltipBody {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--ff-color-text-secondary);
+    margin-bottom: 1.25rem;
+}
+
+/* ── Footer ────────────────────────────────────────────────────────────── */
+
+.tooltipFooter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.stepIndicator {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #aaa;
+    letter-spacing: 0.02em;
+}
+
+.tooltipActions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.skipBtn {
+    background: none;
+    border: none;
+    color: var(--ff-color-text-secondary);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0.5rem 0.75rem;
+    min-height: 48px;
+    min-width: 48px;
+    border-radius: 10px;
+    transition: background 0.15s;
+}
+
+.skipBtn:hover {
+    background: #f5f5f5;
+}
+
+.nextBtn {
+    background: var(--ff-color-brand-gradient);
+    color: white;
+    border: none;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.6rem 1.5rem;
+    min-height: 48px;
+    min-width: 48px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(44, 122, 123, 0.3);
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.nextBtn:active {
+    transform: scale(0.97);
+}
+
+/* ── Mobile ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+    .tooltip {
+        max-width: calc(100vw - 32px);
+        padding: 1.25rem;
+    }
+
+    .tooltipEmoji {
+        font-size: 2rem;
+    }
+
+    .tooltipTitle {
+        font-size: 1.1rem;
+    }
+}

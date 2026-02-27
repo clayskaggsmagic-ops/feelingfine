@@ -1,0 +1,134 @@
+/* ── Mobile Bottom Tab Bar ────────────────────────────────────────────────── */
+
+.bar {
+    display: none;
+    /* Hidden on desktop */
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    z-index: 900;
+    padding: 0.25rem 0 env(safe-area-inset-bottom, 0.25rem);
+    justify-content: space-around;
+}
+
+@media (max-width: 768px) {
+    .bar {
+        display: flex;
+    }
+}
+
+.tabBtn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.5rem 0;
+    background: none;
+    border: none;
+    min-height: 56px;
+    cursor: pointer;
+    border-radius: 0;
+    color: #999;
+    transition: color 0.2s;
+}
+
+.tabActive {
+    color: var(--ff-color-brand-primary);
+}
+
+.tabIcon {
+    font-size: 1.4rem;
+    line-height: 1;
+}
+
+.tabLabel {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* ── Slide-up Sheet ───────────────────────────────────────────────────────── */
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 950;
+    display: flex;
+    align-items: flex-end;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.sheet {
+    width: 100%;
+    background: white;
+    border-radius: 20px 20px 0 0;
+    padding: 0.75rem 1rem calc(env(safe-area-inset-bottom, 0.5rem) + 60px);
+    animation: slideUp 0.25s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+.handle {
+    width: 36px;
+    height: 4px;
+    background: #ddd;
+    border-radius: 4px;
+    margin: 0 auto 0.75rem;
+}
+
+.sheetItem {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 1rem;
+    background: none;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--ff-color-text-primary);
+    cursor: pointer;
+    min-height: 52px;
+    transition: background 0.15s;
+}
+
+.sheetItem:active {
+    background: #f4f6f8;
+}
+
+.sheetItemDanger {
+    color: var(--ff-color-error);
+}
+
+.sheetDivider {
+    height: 1px;
+    background: #f0f0f0;
+    margin: 0.25rem 0;
+}

@@ -1,0 +1,145 @@
+# Feeling Fine — Server-side GraphQL mutations (executed via Admin SDK)
+# All mutations are NO_ACCESS — only callable from backend with admin privileges.
+
+# ── User Mutations ───────────────────────────────────────────────────────────
+
+mutation UpsertUser(
+  $id: String!
+  $email: String!
+  $displayName: String
+  $firstName: String
+  $lastName: String
+  $role: String!
+  $provider: String
+  $photoURL: String
+  $programStartDate: Date
+  $labels: [String!]
+  $fontSizeMultiplier: Float
+  $emailOptIn: Boolean
+) @auth(level: NO_ACCESS) {
+  user_upsert(data: {
+    id: $id
+    email: $email
+    displayName: $displayName
+    firstName: $firstName
+    lastName: $lastName
+    role: $role
+    provider: $provider
+    photoURL: $photoURL
+    programStartDate: $programStartDate
+    labels: $labels
+    fontSizeMultiplier: $fontSizeMultiplier
+    emailOptIn: $emailOptIn
+    updatedAt_expr: "request.time"
+  })
+}
+
+mutation UpdateUser(
+  $id: String!
+  $displayName: String
+  $firstName: String
+  $lastName: String
+  $fontSizeMultiplier: Float
+  $emailOptIn: Boolean
+  $labels: [String!]
+  $programStartDate: Date
+) @auth(level: NO_ACCESS) {
+  user_update(id: $id, data: {
+    displayName: $displayName
+    firstName: $firstName
+    lastName: $lastName
+    fontSizeMultiplier: $fontSizeMultiplier
+    emailOptIn: $emailOptIn
+    labels: $labels
+    programStartDate: $programStartDate
+    updatedAt_expr: "request.time"
+  })
+}
+
+mutation DeleteUser($id: String!) @auth(level: NO_ACCESS) {
+  t: trackingDay_deleteMany(where: { userId: { eq: $id } })
+  cd: completedDo_deleteMany(where: { userId: { eq: $id } })
+  cdo: customDo_deleteMany(where: { userId: { eq: $id } })
+  sr: surveyResponse_deleteMany(where: { userId: { eq: $id } })
+  user_delete(id: $id)
+}
+
+# ── Tracking Mutations ───────────────────────────────────────────────────────
+
+mutation UpsertTrackingDay(
+  $id: String!
+  $uid: String!
+  $dateKey: Date!
+  $feelingScore: Int
+  $dailyDoseViewed: Boolean
+) @auth(level: NO_ACCESS) {
+  trackingDay_upsert(data: {
+    id: $id
+    userId: $uid
+    dateKey: $dateKey
+    feelingScore: $feelingScore
+    dailyDoseViewed: $dailyDoseViewed
+  })
+}
+
+mutation UpdateFeelingScore(
+  $id: String!
+  $uid: String!
+  $dateKey: Date!
+  $feelingScore: Int!
+) @auth(level: NO_ACCESS) {
+  trackingDay_upsert(data: {
+    id: $id
+    userId: $uid
+    dateKey: $dateKey
+    feelingScore: $feelingScore
+  })
+}
+
+mutation InsertCompletedDo(
+  $uid: String!
+  $dateKey: Date!
+  $doId: String!
+  $category: String
+) @auth(level: NO_ACCESS) {
+  completedDo_insert(data: {
+    userId: $uid
+    dateKey: $dateKey
+    doId: $doId
+    category: $category
+  })
+}
+
+mutation DeleteCompletedDo($id: UUID!) @auth(level: NO_ACCESS) {
+  completedDo_delete(id: $id)
+}
+
+mutation InsertCustomDo(
+  $uid: String!
+  $dateKey: Date!
+  $text: String!
+  $category: String
+) @auth(level: NO_ACCESS) {
+  customDo_insert(data: {
+    userId: $uid
+    dateKey: $dateKey
+    text: $text
+    category: $category
+  })
+}
+
+# ── Survey Response Mutations ────────────────────────────────────────────────
+
+mutation InsertSurveyResponse(
+  $uid: String!
+  $surveyId: String!
+  $programDay: Int!
+  $answers: String!
+) @auth(level: NO_ACCESS) {
+  surveyResponse_insert(data: {
+    userId: $uid
+    surveyId: $surveyId
+    programDay: $programDay
+    answers: $answers
+  })
+}

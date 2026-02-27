@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { auth, db } from '../services/firebase.js';
+import { auth } from '../services/firebase.js';
+import { getUserByUid, upsertUser, updateUser, deleteUser } from '../services/dataConnect.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
@@ -8,39 +9,32 @@ const router = Router();
 const ADMIN_EMAILS = ['clayskaggsmagic@gmail.com'];
 
 /**
- * Build a default Firestore user profile document.
+ * Build a default user profile row for PostgreSQL.
  */
-function buildUserProfile({ uid, email, displayName, avatarUrl = null }) {
+function buildUserProfile({ uid, email, displayName, photoURL = null, provider = 'email' }) {
     const role = ADMIN_EMAILS.includes(email) ? 'admin' : 'user';
     if (role === 'admin') {
         console.log(`[auth] Admin account detected: ${email}`);
     }
 
     return {
-        uid,
+        id: uid,
         email,
         displayName: displayName || email.split('@')[0],
-        avatarUrl,
-        dateOfBirth: null,
-        joinDate: new Date().toISOString(),
-        programStartDate: null, // Set when onboarding survey is completed
-        timezone: 'America/New_York',
-        emailOptIn: true,
+        firstName: null,
+        lastName: null,
         role,
-        onboardingSurveyCompleted: false,
-        lastActiveDate: new Date().toISOString(),
+        provider,
+        photoURL,
+        programStartDate: null,
         labels: [],
-        preferences: {
-            fontSizeMultiplier: 1.0,
-            highContrast: false,
-            notificationsEnabled: true,
-        },
+        fontSizeMultiplier: 1.0,
+        emailOptIn: true,
     };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /v1/auth/signup — Create new user via email/password
-// No auth middleware: the client sends the Firebase ID token after client-side signup
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/signup', async (req, res, next) => {
     try {
@@ -51,15 +45,14 @@ router.post('/signup', async (req, res, next) => {
             return res.status(400).json({ error: 'idToken is required' });
         }
 
-        // Verify the token from the client
         const decoded = await auth.verifyIdToken(idToken);
         console.log(`[auth/signup] Token verified for uid: ${decoded.uid}, email: ${decoded.email}`);
 
         // Check if user profile already exists
-        const existingDoc = await db.collection('users').doc(decoded.uid).get();
-        if (existingDoc.exists) {
+        const existing = await getUserByUid(decoded.uid);
+        if (existing) {
             console.log(`[auth/signup] Profile already exists for uid: ${decoded.uid}`);
-            return res.json({ user: existingDoc.data(), created: false });
+            return res.json({ user: existing, created: false });
         }
 
         // Build and save profile
@@ -67,10 +60,10 @@ router.post('/signup', async (req, res, next) => {
             uid: decoded.uid,
             email: decoded.email,
             displayName: displayName || decoded.name || null,
-            avatarUrl: decoded.picture || null,
+            photoURL: decoded.picture || null,
         });
 
-        await db.collection('users').doc(decoded.uid).set(profile);
+        await upsertUser(profile);
         console.log(`[auth/signup] Profile created for uid: ${decoded.uid}, role: ${profile.role}`);
 
         res.status(201).json({ user: profile, created: true });
@@ -95,29 +88,22 @@ router.post('/login', async (req, res, next) => {
         const decoded = await auth.verifyIdToken(idToken);
         console.log(`[auth/login] Token verified for uid: ${decoded.uid}`);
 
-        // Fetch or create profile
-        const userRef = db.collection('users').doc(decoded.uid);
-        let userDoc = await userRef.get();
+        let user = await getUserByUid(decoded.uid);
 
-        if (!userDoc.exists) {
+        if (!user) {
             console.log(`[auth/login] No profile found, creating one for: ${decoded.email}`);
             const profile = buildUserProfile({
                 uid: decoded.uid,
                 email: decoded.email,
                 displayName: decoded.name || null,
-                avatarUrl: decoded.picture || null,
+                photoURL: decoded.picture || null,
             });
-            await userRef.set(profile);
-            userDoc = await userRef.get();
+            await upsertUser(profile);
+            user = profile;
         }
 
-        // Update last active
-        await userRef.update({ lastActiveDate: new Date().toISOString() });
-
-        const userData = userDoc.data();
-        console.log(`[auth/login] Login success: ${decoded.uid}, role: ${userData.role}`);
-
-        res.json({ user: { ...userData, lastActiveDate: new Date().toISOString() } });
+        console.log(`[auth/login] Login success: ${decoded.uid}, role: ${user.role}`);
+        res.json({ user });
     } catch (err) {
         console.error('[auth/login] Error:', err.message);
         next(err);
@@ -125,7 +111,7 @@ router.post('/login', async (req, res, next) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /v1/auth/google — Handle Google Sign-In (same as login, but explicit)
+// POST /v1/auth/google — Handle Google Sign-In
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/google', async (req, res, next) => {
     try {
@@ -138,33 +124,26 @@ router.post('/google', async (req, res, next) => {
         const decoded = await auth.verifyIdToken(idToken);
         console.log(`[auth/google] Google sign-in for uid: ${decoded.uid}, email: ${decoded.email}`);
 
-        const userRef = db.collection('users').doc(decoded.uid);
-        let userDoc = await userRef.get();
+        let user = await getUserByUid(decoded.uid);
 
-        if (!userDoc.exists) {
+        if (!user) {
             console.log(`[auth/google] First-time Google user, creating profile: ${decoded.email}`);
             const profile = buildUserProfile({
                 uid: decoded.uid,
                 email: decoded.email,
                 displayName: decoded.name || null,
-                avatarUrl: decoded.picture || null,
+                photoURL: decoded.picture || null,
+                provider: 'google',
             });
-            await userRef.set(profile);
-            userDoc = await userRef.get();
-        } else {
-            // Update avatar from Google if not already set
-            const existing = userDoc.data();
-            const updates = { lastActiveDate: new Date().toISOString() };
-            if (!existing.avatarUrl && decoded.picture) {
-                updates.avatarUrl = decoded.picture;
-            }
-            await userRef.update(updates);
+            await upsertUser(profile);
+            user = profile;
+        } else if (!user.photoURL && decoded.picture) {
+            await updateUser(decoded.uid, { photoURL: decoded.picture });
+            user.photoURL = decoded.picture;
         }
 
-        const userData = (await userRef.get()).data();
-        console.log(`[auth/google] Login success: ${decoded.uid}, role: ${userData.role}`);
-
-        res.json({ user: userData });
+        console.log(`[auth/google] Login success: ${decoded.uid}, role: ${user.role}`);
+        res.json({ user });
     } catch (err) {
         console.error('[auth/google] Error:', err.message);
         next(err);
@@ -185,13 +164,9 @@ router.post('/reset-password', async (req, res, next) => {
         const link = await auth.generatePasswordResetLink(email);
         console.log(`[auth/reset-password] Reset link generated for: ${email}`);
 
-        // In production, this would send via email service.
-        // For now, Firebase Auth handles the email delivery automatically
-        // when the client calls sendPasswordResetEmail().
         res.json({ message: 'Password reset email sent', email });
     } catch (err) {
         console.error('[auth/reset-password] Error:', err.message);
-        // Don't reveal if email exists or not (security)
         res.json({ message: 'If that email exists, a reset link has been sent' });
     }
 });
@@ -230,8 +205,8 @@ router.get('/me', requireAuth, async (req, res, next) => {
 router.patch('/me', requireAuth, async (req, res, next) => {
     try {
         const allowedFields = [
-            'displayName', 'avatarUrl', 'dateOfBirth', 'timezone',
-            'emailOptIn', 'preferences', 'onboardingSurveyCompleted',
+            'displayName', 'firstName', 'lastName', 'photoURL',
+            'emailOptIn', 'fontSizeMultiplier',
             'programStartDate', 'labels',
         ];
 
@@ -249,16 +224,14 @@ router.patch('/me', requireAuth, async (req, res, next) => {
         // Never allow role to be updated via this endpoint
         delete updates.role;
 
-        updates.lastActiveDate = new Date().toISOString();
-
         console.log(`[auth/me PATCH] Updating uid: ${req.user.uid}, fields: ${Object.keys(updates).join(', ')}`);
 
-        await db.collection('users').doc(req.user.uid).update(updates);
+        await updateUser(req.user.uid, updates);
 
-        const updatedDoc = await db.collection('users').doc(req.user.uid).get();
+        const updated = await getUserByUid(req.user.uid);
         console.log(`[auth/me PATCH] Update success for uid: ${req.user.uid}`);
 
-        res.json({ user: updatedDoc.data() });
+        res.json({ user: updated });
     } catch (err) {
         console.error('[auth/me PATCH] Error:', err.message);
         next(err);
@@ -273,21 +246,17 @@ router.delete('/me', requireAuth, async (req, res, next) => {
         const uid = req.user.uid;
         console.log(`[auth/me DELETE] Starting account deletion for uid: ${uid}`);
 
-        // Delete subcollections: tracking, surveyResponses
-        const subcollections = ['tracking', 'surveyResponses'];
-        for (const sub of subcollections) {
-            const snapshot = await db.collection('users').doc(uid).collection(sub).get();
-            const batch = db.batch();
-            snapshot.docs.forEach(doc => batch.delete(doc.ref));
-            if (snapshot.docs.length > 0) {
-                await batch.commit();
-                console.log(`[auth/me DELETE] Deleted ${snapshot.docs.length} docs from /users/${uid}/${sub}`);
-            }
-        }
+        // Cascade-delete all child records first
+        const { mutate } = await import('../services/dataConnect.js');
+        try { await mutate(`mutation($uid: String!) { trackingDay_deleteMany(where: { userId: { eq: $uid } }) }`, { uid }); } catch { }
+        try { await mutate(`mutation($uid: String!) { completedDo_deleteMany(where: { userId: { eq: $uid } }) }`, { uid }); } catch { }
+        try { await mutate(`mutation($uid: String!) { customDo_deleteMany(where: { userId: { eq: $uid } }) }`, { uid }); } catch { }
+        try { await mutate(`mutation($uid: String!) { surveyResponse_deleteMany(where: { userId: { eq: $uid } }) }`, { uid }); } catch { }
+        console.log(`[auth/me DELETE] Deleted child records for uid: ${uid}`);
 
-        // Delete user profile document
-        await db.collection('users').doc(uid).delete();
-        console.log(`[auth/me DELETE] Deleted Firestore profile for uid: ${uid}`);
+        // Delete user row
+        await deleteUser(uid);
+        console.log(`[auth/me DELETE] Deleted PostgreSQL user record for uid: ${uid}`);
 
         // Delete Firebase Auth account
         await auth.deleteUser(uid);
@@ -296,6 +265,41 @@ router.delete('/me', requireAuth, async (req, res, next) => {
         res.json({ message: 'Account and all data deleted successfully' });
     } catch (err) {
         console.error('[auth/me DELETE] Error:', err.message);
+        next(err);
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /v1/auth/me/export — Export all user data (GDPR compliance)
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/me/export', requireAuth, async (req, res, next) => {
+    try {
+        const uid = req.user.uid;
+        const { query } = await import('../services/dataConnect.js');
+
+        // Fetch all user data in parallel
+        const [profile, trackingDays, completedDos, customDos, surveyResponses] = await Promise.all([
+            getUserByUid(uid),
+            query(`query($uid: String!) { trackingDays(where: { userId: { eq: $uid } }, orderBy: [{ date: DESC }]) { id date feelingScore notes createdAt } }`, { uid }).catch(() => ({ data: { trackingDays: [] } })),
+            query(`query($uid: String!) { completedDos(where: { userId: { eq: $uid } }) { id doId category completedAt } }`, { uid }).catch(() => ({ data: { completedDos: [] } })),
+            query(`query($uid: String!) { customDos(where: { userId: { eq: $uid } }) { id text category createdAt } }`, { uid }).catch(() => ({ data: { customDos: [] } })),
+            query(`query($uid: String!) { surveyResponses(where: { userId: { eq: $uid } }) { id surveyId answers completedAt } }`, { uid }).catch(() => ({ data: { surveyResponses: [] } })),
+        ]);
+
+        const exportData = {
+            exportedAt: new Date().toISOString(),
+            profile: profile || {},
+            trackingDays: trackingDays?.data?.trackingDays || [],
+            completedDos: completedDos?.data?.completedDos || [],
+            customDos: customDos?.data?.customDos || [],
+            surveyResponses: surveyResponses?.data?.surveyResponses || [],
+        };
+
+        res.setHeader('Content-Disposition', `attachment; filename="feelingfine-export-${uid}.json"`);
+        res.setHeader('Content-Type', 'application/json');
+        res.json(exportData);
+    } catch (err) {
+        console.error('[auth/me/export] Error:', err.message);
         next(err);
     }
 });

@@ -1,0 +1,207 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Feeling Fine — PostgreSQL Schema via Firebase Data Connect
+# All tables per read.md Section 6. Foreign keys enforce referential integrity.
+# ──────────────────────────────────────────────────────────────────────────────
+
+# ── User Profile ─────────────────────────────────────────────────────────────
+# Primary key is Firebase Auth UID (text).
+type User @table {
+  id: String! @col(dataType: "varchar(128)")
+  email: String! @col(dataType: "varchar(255)")
+  displayName: String @col(dataType: "varchar(100)")
+  firstName: String @col(dataType: "varchar(50)")
+  lastName: String @col(dataType: "varchar(50)")
+  role: String! @col(dataType: "varchar(20)") @default(expr: "'user'")
+  programStartDate: Date
+  labels: [String!]
+  fontSizeMultiplier: Float @default(expr: "1.0")
+  emailOptIn: Boolean @default(expr: "true")
+  provider: String @col(dataType: "varchar(30)")
+  photoURL: String
+  walkthroughCompleted: Boolean @default(expr: "false")
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# ── Cornerstones ─────────────────────────────────────────────────────────────
+type Cornerstone @table {
+  id: String! @col(dataType: "varchar(30)")
+  name: String! @col(dataType: "varchar(50)")
+  dayNumber: Int!
+  icon: String @col(dataType: "varchar(30)")
+  color: String @col(dataType: "varchar(10)")
+  description: String
+  dayOfWeek: String @col(dataType: "varchar(15)")
+  sortOrder: Int!
+  isActive: Boolean! @default(expr: "true")
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# ── Daily Doses ──────────────────────────────────────────────────────────────
+type DailyDose @table {
+  dayNumber: Int!
+  category: String! @col(dataType: "varchar(30)")
+  title: String! @col(dataType: "varchar(100)")
+  message: String!
+  bannerText: String
+  bannerQuestion: String
+  bannerQuestionType: String @col(dataType: "varchar(30)")
+  bannerOptions: [String!]
+  isActive: Boolean! @default(expr: "true")
+  targetLabels: [String!]
+  adminMessage: String
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# ── Daily Dos ────────────────────────────────────────────────────────────────
+type DailyDo @table {
+  text: String!
+  category: String! @col(dataType: "varchar(30)")
+  dayNumber: Int!
+  sortOrder: Int!
+  isActive: Boolean! @default(expr: "true")
+  targetLabels: [String!]
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# ── Tracking Days ────────────────────────────────────────────────────────────
+# PK is deterministic: "{userId}_{dateKey}" so upserts work.
+type TrackingDay @table {
+  id: String! @col(dataType: "varchar(200)")
+  user: User!
+  dateKey: Date!
+  feelingScore: Int
+  dailyDoseViewed: Boolean @default(expr: "false")
+  dailyDoseViewedAt: Timestamp
+  surveyCompleted: String @col(dataType: "varchar(50)")
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# ── Completed Dos (junction table) ───────────────────────────────────────────
+type CompletedDo @table {
+  user: User!
+  dateKey: Date!
+  doId: String! @col(dataType: "varchar(50)")
+  category: String @col(dataType: "varchar(30)")
+  completedAt: Timestamp! @default(expr: "request.time")
+}
+
+# ── Custom Dos ───────────────────────────────────────────────────────────────
+type CustomDo @table {
+  user: User!
+  dateKey: Date!
+  text: String!
+  category: String @col(dataType: "varchar(30)")
+  completedAt: Timestamp! @default(expr: "request.time")
+}
+
+# ── Surveys ──────────────────────────────────────────────────────────────────
+type Survey @table {
+  id: String! @col(dataType: "varchar(50)")
+  title: String! @col(dataType: "varchar(200)")
+  description: String
+  type: String! @col(dataType: "varchar(30)")
+  triggerDay: Int!
+  isDismissable: Boolean! @default(expr: "false")
+  isActive: Boolean! @default(expr: "true")
+  questions: String!  # JSONB-serialized question array
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# ── Survey Responses ─────────────────────────────────────────────────────────
+type SurveyResponse @table {
+  user: User!
+  survey: Survey!
+  programDay: Int!
+  answers: String! # JSONB-serialized answer array
+  submittedAt: Timestamp! @default(expr: "request.time")
+}
+
+# ── App Settings ─────────────────────────────────────────────────────────────
+type AppSetting @table {
+  id: String! @col(dataType: "varchar(30)")
+  emailSendTime: String @col(dataType: "varchar(10)")
+  emailSendTimezone: String @col(dataType: "varchar(50)")
+  programLengthWeeks: Int @default(expr: "8")
+  adminPasscode: String
+  welcomeMessage: String
+  maintenanceMode: Boolean @default(expr: "false")
+  weeklyChallenge: String
+  weeklyChallengeCornerstoneId: String @col(dataType: "varchar(30)")
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# ── Email Templates ──────────────────────────────────────────────────────────
+type EmailTemplate @table {
+  id: String! @col(dataType: "varchar(30)")
+  name: String! @col(dataType: "varchar(100)")
+  subject: String!
+  htmlBody: String!
+  textBody: String!
+  isActive: Boolean! @default(expr: "true")
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+  updatedBy: String @col(dataType: "varchar(128)")
+}
+
+# ── Podcasts ─────────────────────────────────────────────────────────────────
+type Podcast @table {
+  title: String! @col(dataType: "varchar(200)")
+  description: String
+  category: String @col(dataType: "varchar(30)")
+  audioUrl: String!
+  duration: String @col(dataType: "varchar(20)")
+  isActive: Boolean! @default(expr: "true")
+  publishedAt: Timestamp @default(expr: "request.time")
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# ── Webinars ─────────────────────────────────────────────────────────────────
+type Webinar @table {
+  title: String! @col(dataType: "varchar(200)")
+  description: String
+  date: Timestamp!
+  registrationUrl: String
+  recordingUrl: String
+  hostName: String @col(dataType: "varchar(100)")
+  status: String! @col(dataType: "varchar(20)") @default(expr: "'upcoming'")
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# ── Chat Messages ────────────────────────────────────────────────────────────
+type ChatMessage @table {
+  sender: User!
+  recipientUser: User
+  recipientGroup: CommunityGroup
+  text: String!
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# ── Friend Requests ──────────────────────────────────────────────────────────
+type FriendRequest @table {
+  fromUser: User!
+  toUser: User!
+  status: String! @col(dataType: "varchar(20)") @default(expr: "'pending'")
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# ── Community Groups ─────────────────────────────────────────────────────────
+type CommunityGroup @table {
+  name: String! @col(dataType: "varchar(100)")
+  description: String
+  category: String @col(dataType: "varchar(30)")
+  createdBy: User!
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# ── Group Members ────────────────────────────────────────────────────────────
+type GroupMember @table {
+  group: CommunityGroup!
+  user: User!
+  joinedAt: Timestamp! @default(expr: "request.time")
+}
+

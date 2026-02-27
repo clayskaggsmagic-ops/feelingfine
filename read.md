@@ -126,9 +126,10 @@ A **fully production-ready platform** with:
 │                        DATA LAYER                                  │
 │                            │                                       │
 │  ┌──────────────┐  ┌──────┴───────┐  ┌────────────────────┐      │
-│  │ Firebase     │  │  Firestore   │  │  Firebase Storage  │      │
-│  │ Auth         │  │  Database    │  │  (Media/Assets)    │      │
-│  └──────────────┘  └──────────────┘  └────────────────────┘      │
+│  │ Firebase     │  │  PostgreSQL  │  │  Firebase Storage  │      │
+│  │ Auth         │  │ (Data       │  │  (Media/Assets)    │      │
+│  └──────────────┘  │  Connect)   │  └────────────────────┘      │
+│                     └──────────────┘                               │
 │                                                                    │
 │  ┌──────────────────────────────────────────────────────────┐     │
 │  │  External Services: Gemini API, SendGrid/Resend (Email)  │     │
@@ -261,30 +262,48 @@ Foreign key: `user_uid` → `users.uid`.
 
 ```
 TrackingDay {
-  id: serial PRIMARY KEY
+  id: string PRIMARY KEY         // Deterministic: "{user_uid}_{date_key}"
   user_uid: text REFERENCES users(uid)
   date_key: date                 // e.g., "2026-03-01"
   feelingScore: number | null    // 1-10 scale
-  completedDos: [                // Array of completed Daily Do IDs
-    { doId: string, completedAt: timestamp }
-  ]
-  completedCustomDos: [          // User-created custom tasks
-    { text: string, completedAt: timestamp, category: string }
-  ]
-  cornerstoneProgress: {         // Which cornerstones had activity
-    nutrition: number,           // Count of completed dos in this category
-    movement: number,
-    sleep: number,
-    stress_management: number,
-    social_connection: number,
-    cognitive_health: number,
-    healthy_aging: number
-  }
   dailyDoseViewed: boolean       // Did they open the Daily Dose?
   dailyDoseViewedAt: timestamp | null
   surveyCompleted: string | null // ID of any survey completed this day
+  createdAt: timestamp
 }
 ```
+
+#### `completed_dos`
+Junction table linking a tracking day to completed Daily Dos.
+Foreign key: `user_uid` → `users.uid`.
+
+```
+CompletedDo {
+  id: uuid PRIMARY KEY
+  user_uid: text REFERENCES users(uid)
+  date_key: date
+  doId: string                   // References the Daily Do
+  category: string | null        // Cornerstone category
+  completedAt: timestamp
+}
+```
+
+#### `custom_dos`
+User-created custom tasks for a given day.
+Foreign key: `user_uid` → `users.uid`.
+
+```
+CustomDo {
+  id: uuid PRIMARY KEY
+  user_uid: text REFERENCES users(uid)
+  date_key: date
+  text: string                   // User-written task description
+  category: string | null        // Cornerstone category
+  completedAt: timestamp
+}
+```
+
+> **Note:** `cornerstoneProgress` is computed at query time by counting `CompletedDo` and `CustomDo` rows grouped by `category` — it is not stored as a column.
 
 #### `survey_responses`
 Individual survey submissions.

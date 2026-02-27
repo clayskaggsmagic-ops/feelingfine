@@ -1,5 +1,16 @@
 {
   "projects": {},
-  "targets": {},
+  "targets": {
+    "feelingfine-b4106": {
+      "hosting": {
+        "web": [
+          "feelingfine-web"
+        ],
+        "admin": [
+          "feelingfine-admin"
+        ]
+      }
+    }
+  },
   "etags": {}
 }

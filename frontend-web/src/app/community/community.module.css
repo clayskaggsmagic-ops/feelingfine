@@ -1,0 +1,383 @@
+/* ── Community Page Styles ────────────────────────────────────────────────── */
+
+.page {
+    min-height: 100vh;
+    background: var(--bg-warm);
+    padding: 2rem;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.backBtn {
+    background: none;
+    border: none;
+    font-size: 0.9rem;
+    color: var(--primary);
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.title {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+/* ── Tabs ──────────────────────────────────────────────────────────────────── */
+
+.tabs {
+    display: flex;
+    gap: 0.35rem;
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+}
+
+.tab {
+    padding: 0.6rem 1rem;
+    border: none;
+    border-radius: 10px;
+    background: white;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.tab:hover {
+    background: #f0f2f5;
+}
+
+.tabActive {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.content {
+    min-height: 300px;
+}
+
+/* ── Challenge ────────────────────────────────────────────────────────────── */
+
+.challengeCard {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border-radius: 16px;
+    padding: 2rem;
+    text-align: center;
+}
+
+.challengeCard h2 {
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    margin-bottom: 1rem;
+}
+
+.challengeText {
+    font-size: 1.15rem;
+    font-weight: 500;
+    color: #92400e;
+    line-height: 1.6;
+}
+
+/* ── Shared ───────────────────────────────────────────────────────────────── */
+
+.badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--primary);
+    text-transform: capitalize;
+}
+
+.emptyMsg {
+    text-align: center;
+    color: #999;
+    padding: 2rem 0;
+    font-size: 0.95rem;
+}
+
+.toastInline {
+    background: var(--text);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.sectionBox {
+    margin-bottom: 1.5rem;
+}
+
+.sectionBox h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    color: var(--text);
+}
+
+/* ── Friends ──────────────────────────────────────────────────────────────── */
+
+.friendSend {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.friendSend input {
+    flex: 1;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.9rem;
+}
+
+.smallBtn {
+    padding: 0.6rem 1rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.friendRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: white;
+    border-radius: 12px;
+    margin-bottom: 0.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.acceptBtn {
+    padding: 0.3rem 0.65rem;
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.rejectBtn {
+    padding: 0.3rem 0.65rem;
+    background: rgba(239, 68, 68, 0.08);
+    color: #dc2626;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+/* ── Chat ─────────────────────────────────────────────────────────────────── */
+
+.chatTargetRow {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.chatTargetRow select,
+.chatTargetRow input {
+    padding: 0.6rem 0.9rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.9rem;
+}
+
+.chatTargetRow input {
+    flex: 1;
+}
+
+.chatBox {
+    background: white;
+    border-radius: 16px;
+    padding: 1rem;
+    min-height: 250px;
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: 0.75rem;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.chatBubble {
+    max-width: 75%;
+    padding: 0.65rem 1rem;
+    margin-bottom: 0.5rem;
+    border-radius: 14px;
+    background: #f0f2f5;
+    position: relative;
+}
+
+.chatBubbleMine {
+    background: var(--primary);
+    color: white;
+    margin-left: auto;
+}
+
+.chatSender {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    opacity: 0.7;
+    display: block;
+    margin-bottom: 0.15rem;
+}
+
+.chatBubble p {
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.chatTime {
+    font-size: 0.65rem;
+    opacity: 0.6;
+    display: block;
+    text-align: right;
+    margin-top: 0.2rem;
+}
+
+.chatInput {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.chatInput input {
+    flex: 1;
+    padding: 0.7rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 0.95rem;
+}
+
+.sendBtn {
+    padding: 0.7rem 1.25rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* ── Podcasts & Webinars ──────────────────────────────────────────────────── */
+
+.filterSelect {
+    width: 100%;
+    max-width: 250px;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.mediaCard {
+    background: white;
+    border-radius: 14px;
+    padding: 1.25rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.mediaInfo h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+}
+
+.mediaInfo p {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin-bottom: 0.35rem;
+    line-height: 1.5;
+}
+
+.audioPlayer {
+    width: 100%;
+    max-width: 280px;
+    height: 36px;
+    border-radius: 20px;
+    margin-top: 0.5rem;
+}
+
+.liveBadge {
+    color: #dc2626;
+    font-size: 0.75rem;
+    font-weight: 700;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.4;
+    }
+}
+
+.registerBtn {
+    padding: 0.5rem 1rem;
+    background: var(--primary);
+    color: white;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-decoration: none;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+    .page {
+        padding: 1rem;
+    }
+
+    .tabs {
+        gap: 0.25rem;
+    }
+
+    .tab {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+    }
+
+    .mediaCard {
+        flex-direction: column;
+    }
+
+    .audioPlayer {
+        max-width: 100%;
+    }
+}

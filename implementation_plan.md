@@ -55,21 +55,22 @@ Read CRITICAL_NOTES.md and read.md first.
 Build the authentication backend per Section 5 and Section 7 of read.md:
 
 1. Create src/routes/auth.js with these endpoints:
-   - POST /v1/auth/signup — Create Firebase Auth user + Firestore profile
+   - POST /v1/auth/signup — Create Firebase Auth user + PostgreSQL profile
    - POST /v1/auth/login — Validate Firebase token, return user profile
    - POST /v1/auth/google — Handle Google Sign-In token
-   - GET /v1/auth/me — Get current user profile from Firestore
+   - GET /v1/auth/me — Get current user profile from PostgreSQL
    - PATCH /v1/auth/me — Update profile (name, preferences, avatar)
-   - DELETE /v1/auth/me — Delete account + all subcollections
+   - DELETE /v1/auth/me — Delete account + all related data
 
-2. The user profile document in Firestore /users/{uid} must match the
+2. The user profile row in PostgreSQL users table must match the
    schema in Section 5 (uid, email, displayName, joinDate, programDay,
    timezone, emailOptIn, role, preferences, etc.)
+   All data access via backend/src/services/dataConnect.js.
 
 3. Create src/middleware/adminAuth.js that checks role === 'admin'.
 
 4. Seed the admin account: when clayskaggsmagic@gmail.com signs in for
-   the first time, their Firestore profile should have role: 'admin'.
+   the first time, their PostgreSQL profile should have role: 'admin'.
 
 5. Add comprehensive logging per CRITICAL_NOTES.md.
 
@@ -106,7 +107,9 @@ Build content delivery and tracking per Sections 7 and 10 of read.md:
 3. Create src/services/programService.js — Logic for selecting the right
    dose/dos based on programDay, user labels, and cornerstone focus.
 
-4. Tracking data stored in /users/{uid}/tracking/{dateKey} subcollection.
+4. Tracking data stored in PostgreSQL tracking_days table keyed by
+   user_uid + date_key. Completed dos and custom dos in junction tables.
+   All data access via backend/src/services/dataConnect.js.
 
 5. Add structured logging throughout.
 
@@ -115,27 +118,28 @@ Verify: Test with curl. Commit and push.
 
 ---
 
-## Prompt 4: Firestore Content Seeding
+## Prompt 4: PostgreSQL Content Seeding
 
 ```
 Read CRITICAL_NOTES.md and read.md first.
 
-Create a seed script at /backend/scripts/seed.js that populates Firestore
-with ALL the seed data from read.md Appendix F:
+Create a seed script at /backend/scripts/seed.js that populates PostgreSQL
+via Data Connect with ALL the seed data from read.md Appendix F:
 
-1. 7 Cornerstones (Section 16.1) into /cornerstones collection
-2. 140 Daily Dos (Appendix F, 20 per cornerstone) into /dailyDos
+1. 7 Cornerstones (Section 16.1) into cornerstone table
+2. 140 Daily Dos (Appendix F, 20 per cornerstone) into dailyDo table
 3. 7 Week 1 Daily Doses with educational banners (Appendix F) into
-   /dailyDoses
-4. 10 Rotating post-program doses (Appendix F) into /dailyDoses
-5. The Onboarding Survey with all 18 questions (Section 11) into /surveys
-6. 7 Daily Check-In Banners for Week 1 (Section 11) into /surveys
-7. Default app settings into /appSettings
-8. Default email template into /emailTemplates
-9. Admin passcode (bcrypt hashed "RAniMe8CXQJw5ayd") into appSettings
+   dailyDose table
+4. 10 Rotating post-program doses (Appendix F) into dailyDose table
+5. The Onboarding Survey with all 18 questions (Section 11) into survey table
+6. 7 Daily Check-In Banners for Week 1 (Section 11) into survey table
+7. Default app settings into appSetting table
+8. Default email template into emailTemplate table
+9. Admin passcode (bcrypt hashed "RAniMe8CXQJw5ayd") into appSetting
 
-Run the script so the database is fully populated. Verify data appears
-in the Firebase Console. Commit and push.
+All inserts via dataConnect.js insertMany(). Run the script so the
+database is fully populated. Verify data via Data Connect console.
+Commit and push.
 ```
 
 ---
@@ -153,7 +157,7 @@ Build the frontend auth flow in /frontend-web per Sections 5 and 12:
 
 2. Sign Up page (/signup) — Email/password form with name field. Google
    Sign-In button. Firebase Auth client SDK. On success, call backend
-   POST /v1/auth/signup to create Firestore profile, then redirect to
+   POST /v1/auth/signup to create PostgreSQL profile, then redirect to
    onboarding.
 
 3. Login page (/login) — Email/password + Google. On success, call
@@ -171,7 +175,7 @@ Design rules: 18px minimum body text, 48px touch targets, warm teal
 palette, glassmorphic cards, Inter + Merriweather fonts. No clutter.
 
 Verify: Full sign-up and login flow works. New user shows in Firebase
-Auth console and Firestore /users. Commit and push.
+Auth console and PostgreSQL users table. Commit and push.
 ```
 
 ---
@@ -211,7 +215,7 @@ Build the onboarding survey at /frontend-web/onboarding per Section 11:
    profile.
 
 Verify: Complete the full onboarding flow end-to-end. Survey response
-saved in Firestore. Labels computed. Commit and push.
+saved in PostgreSQL. Labels computed. Commit and push.
 ```
 
 ---
@@ -395,6 +399,8 @@ Verify: Create, edit, delete content through admin. Verify changes
 appear via user-facing API. Commit and push.
 ```
 
+> **NOTE**: Podcast and webinar admin management is in Prompt 12.
+
 ---
 
 ## Prompt 12: Admin Portal — Users, Emails & Settings
@@ -430,6 +436,21 @@ Build remaining admin pages per Section 8:
    - Batch sends in groups of 100 with delays.
    - Unsubscribe endpoint.
 
+5. Podcast Manager (/podcasts):
+   - Upload audio to Firebase Storage.
+   - Title, description, cornerstone category, duration.
+   - Publish/unpublish toggle.
+   - Backend: GET/POST/PATCH/DELETE /v1/admin/podcasts
+
+6. Webinar Manager (/webinars):
+   - Title, description, date/time, registration link, host name.
+   - Status: upcoming, live, recorded.
+   - Backend: GET/POST/PATCH/DELETE /v1/admin/webinars
+
+7. Weekly Challenge Manager:
+   - Set the active weekly challenge text and cornerstone.
+   - Backend: PATCH /v1/admin/settings (weekly_challenge field)
+
 Verify: User list works. Test email sends. Settings save. Commit and push.
 ```
 
@@ -449,16 +470,47 @@ Build remaining user-facing pages in /frontend-web:
    - Notifications: email opt-in/out toggle.
    - Privacy: "Download my data" and "Delete my account" buttons.
 
-2. Community page (/community):
-   - Weekly Challenge card (fetched from admin settings).
-   - Friends list (stub for now — real friend system is a stretch goal).
+2. Community page (/community) per read.md Section 16.3:
+   a. Weekly Challenge card (admin-set, fetched from settings).
+   b. Friends & Groups:
+      - Friend request system (send/accept/remove).
+      - Group creation (name, description, cornerstone focus).
+      - Join/leave groups.
+      - Backend: POST/GET/DELETE /v1/community/friends,
+        POST/GET /v1/community/groups
+   c. Chat:
+      - In-app messaging between friends/group members.
+      - Chat room list, message history, real-time polling.
+      - Backend: GET/POST /v1/community/messages
+      - Schema: ChatMessage table (sender, recipient/group, text,
+        timestamp).
+   d. Podcasts tab:
+      - List of published podcasts with inline audio player.
+      - Filter by cornerstone category.
+      - Fetch from GET /v1/content/podcasts
+   e. Webinars tab:
+      - Upcoming webinars with date, description, register link.
+      - Past webinars with recording link.
+      - Fetch from GET /v1/content/webinars
 
 3. Password reset flow.
 
 4. Account deletion confirmation flow.
 
+5. Add database tables (schema.gql):
+   - Podcast (title, description, category, audioUrl, duration,
+     publishedAt, isActive)
+   - Webinar (title, description, date, registrationUrl, recordingUrl,
+     hostName, status)
+   - ChatMessage (sender, recipientUser, recipientGroup, text,
+     createdAt)
+   - FriendRequest (fromUser, toUser, status, createdAt)
+   - CommunityGroup (name, description, category, createdBy)
+   - GroupMember (group, user, joinedAt)
+
 Verify: Font scaling works. Email opt-out persists. Account deletion
-removes all data. Commit and push.
+removes all data. Podcasts play audio. Webinars list with links.
+Chat sends and receives messages. Commit and push.
 ```
 
 ---
@@ -525,11 +577,118 @@ Final pass on the entire application:
    - Deploy frontend-web to Firebase Hosting.
    - Deploy frontend-admin to separate Firebase Hosting site.
    - Set up custom domain DNS (instructions for GoDaddy per Section 18).
+   - **Email DNS**: Emails send from `Art <art@feelingfine.org>` via
+     Resend. Add Resend's SPF, DKIM, DMARC records to GoDaddy DNS
+     for feelingfine.org domain verification.
 
 9. Smoke test the deployed app end-to-end: sign up, onboarding survey,
    view dose, complete dos, view report, admin portal.
 
 Verify: Full end-to-end smoke test on deployed URLs. Commit and push.
+```
+
+---
+
+## Prompt 16: Guided App Walkthrough (First-Time User Tour)
+
+```
+Read CRITICAL_NOTES.md and read.md first.
+
+Build a guided walkthrough overlay that activates the first time a user
+reaches the dashboard after onboarding. This is a tooltip-based tour
+that highlights key UI elements step-by-step.
+
+Architectural notes:
+- This is 95% frontend. The only backend change is adding a
+  `walkthroughCompleted: Boolean` field to the User profile in
+  schema.gql and a PATCH endpoint to set it.
+- The walkthrough state lives on the user profile so it persists
+  across devices/sessions.
+
+1. Add `walkthroughCompleted` Boolean field to User in schema.gql.
+   Default: false. Add migration + redeploy Data Connect schema.
+
+2. Create a WalkthroughOverlay component (frontend-web only):
+   - Semi-transparent dark overlay grays out the page
+   - A spotlight cutout highlights the current UI element
+   - A tooltip card explains what the element does
+   - "Next" and "Skip Tour" buttons (48px touch targets)
+   - Step indicator: "Step 3 of 7"
+   - Smooth transitions between steps
+
+3. Walkthrough steps (in order):
+   a. Daily Dose card — "This is your Daily Dose..."
+   b. Feeling Score slider — "Rate how you're feeling..."
+   c. Cornerstone section — "Each day focuses on one Cornerstone..."
+   d. Daily Dos checklist — "Check off tasks as you complete them..."
+   e. Report/Progress link — "Track your progress over time..."
+   f. Settings icon — "Customize your experience here..."
+   g. Final: "You're all set! Enjoy your wellness journey."
+
+4. On "Skip Tour" or final step completion:
+   - PATCH /v1/auth/me with { walkthroughCompleted: true }
+   - Tour never shows again
+
+5. Use CSS-only spotlight (box-shadow trick or clip-path) — no
+   heavy tour libraries. Keep the bundle small.
+
+Design: Warm, encouraging tone. Large text. Same glassmorphic card
+style as the rest of the app. Animations should be gentle.
+
+Verify: New user sees tour on first dashboard visit. "Skip" and
+"Complete" both persist the flag. Returning users never see it.
+Commit and push.
+```
+
+---
+
+## Prompt 17: Production Security Hardening
+
+```
+Read CRITICAL_NOTES.md and read.md first.
+
+Final security pass before public launch per OWASP 2025 Top 10:
+
+1. Rate Limiting — Configure express-rate-limit (already installed):
+   - Global: 100 req/15 min per IP
+   - Auth routes: 10 req/15 min (brute-force protection)
+   - AI routes: 20 req/15 min per user (Gemini cost protection)
+   - Tracking writes: 60 req/15 min per user
+
+2. Input Validation — Add zod or express-validator:
+   - Survey answers: validate array structure, max length, types
+   - Chat messages: max 500 chars, strip HTML
+   - Feeling scores: integer 1-10 only
+   - Custom dos: max 200 chars, strip HTML
+   - All strings: trim whitespace, reject null bytes
+
+3. Production Error Handler — errorHandler.js:
+   - Return only generic messages to clients (no stack traces)
+   - Log full errors server-side with structured logging
+   - Use morgan('combined') in production
+
+4. API Key Security:
+   - Move GEMINI_API_KEY to GCP Secret Manager for production
+   - Restrict Firebase API key (IP, referrer, API scope)
+   - Confirm .gitignore covers: .env, .env.local, .env.production,
+     service-account-key.json
+
+5. Legal Pages:
+   - Privacy Policy (disclose: Firebase, Gemini, data collected)
+   - Terms of Service (liability, not medical advice)
+   - "Not medical advice" disclaimer in app footer/settings
+   - AI disclosure: chat uses Google Gemini
+
+6. Firebase App Check — Verify requests come from your app only.
+
+7. User Data Export — Add GET /v1/auth/me/export (GDPR compliance).
+
+8. Cloud SQL: Remove public IP if not needed, enable backups,
+   enable audit logging.
+
+Verify: Rate limiting blocks excess requests. Invalid input returns
+400 errors. No stack traces in production responses. npm audit shows
+0 vulnerabilities. Privacy policy accessible. Commit and push.
 ```
 
 ---
@@ -550,8 +709,11 @@ Verify: Full end-to-end smoke test on deployed URLs. Commit and push.
 | 10 | Admin portal (auth, dashboard) | frontend-admin/src/app/ |
 | 11 | Admin content managers (doses, dos, surveys) | frontend-admin/src/app/doses/ |
 | 12 | Admin users, emails, settings + email system | frontend-admin/src/app/users/ |
-| 13 | User settings, community, account management | frontend-web/src/app/settings/ |
+| 13 | User settings, community (chat, podcasts, webinars, groups), account management | frontend-web/src/app/settings/, community/ |
 | 14 | Mobile responsive optimization | CSS across frontend-web |
 | 15 | Polish, testing, deployment | All files |
+| 16 | Guided first-time walkthrough tour | frontend-web/src/components/Walkthrough/ |
+| 17 | Production security hardening | backend/src/middleware/, legal pages |
 
 > **After each prompt**: run `git add -A && git commit -m "Prompt N: description" && git push` from your terminal.
+

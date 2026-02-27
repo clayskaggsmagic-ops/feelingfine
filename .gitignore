@@ -5,6 +5,7 @@ node_modules/
 # Environment
 .env
 .env.local
+.env.production
 .env.*.local
 backend/.env
 
@@ -21,6 +22,10 @@ build/
 # Firebase
 firebase-debug.log
 .firebase/
+
+# Data Connect
+dataconnect/.dataconnect/
+backend/dataconnect-generated/
 
 # OS
 .DS_Store

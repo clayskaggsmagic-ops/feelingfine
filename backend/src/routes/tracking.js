@@ -1,62 +1,68 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
-import { db } from '../services/firebase.js';
-import { getDateKey, calculateProgramDay, getFocusedCornerstone } from '../services/programService.js';
+import { getDateKey, calculateProgramDay } from '../services/programService.js';
+import {
+    getTrackingDay,
+    upsertTrackingDay,
+    getTrackingHistory,
+    insertCompletedDo,
+    deleteCompletedDo,
+    insertCustomDo,
+} from '../services/dataConnect.js';
 
 const router = Router();
 
-// All tracking routes require authentication
-router.use(requireAuth);
-
-/**
- * Get or create today's tracking document for the user.
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper: Get or create today's tracking record
+// ─────────────────────────────────────────────────────────────────────────────
 async function getOrCreateTrackingDoc(uid) {
     const dateKey = getDateKey();
-    const ref = db.collection('users').doc(uid).collection('tracking').doc(dateKey);
-    const doc = await ref.get();
 
-    if (doc.exists) {
-        return { ref, data: { dateKey, ...doc.data() }, created: false };
+    let tracking = await getTrackingDay(uid, dateKey);
+
+    if (!tracking) {
+        await upsertTrackingDay(uid, dateKey);
+        tracking = await getTrackingDay(uid, dateKey);
+        console.log(`[tracking] Created new tracking record for uid: ${uid}, date: ${dateKey}`);
+        return { data: tracking, created: true };
     }
 
-    const newDoc = {
-        dateKey,
-        feelingScore: null,
-        completedDos: [],
-        completedCustomDos: [],
-        cornerstoneProgress: {
-            nutrition: 0,
-            movement: 0,
-            sleep: 0,
-            stress_management: 0,
-            social_connection: 0,
-            cognitive_health: 0,
-            healthy_aging: 0,
-        },
-        dailyDoseViewed: false,
-        dailyDoseViewedAt: null,
-        surveyCompleted: null,
-        createdAt: new Date().toISOString(),
-    };
+    return { data: tracking, created: false };
+}
 
-    await ref.set(newDoc);
-    console.log(`[tracking] Created new tracking doc for uid: ${uid}, date: ${dateKey}`);
-    return { ref, data: { dateKey, ...newDoc }, created: true };
+/**
+ * Normalize a tracking day record into a flat response shape.
+ */
+function normalizeTracking(tracking) {
+    return {
+        dateKey: tracking.dateKey,
+        feelingScore: tracking.feelingScore,
+        dailyDoseViewed: tracking.dailyDoseViewed,
+        dailyDoseViewedAt: tracking.dailyDoseViewedAt,
+        surveyCompleted: tracking.surveyCompleted,
+        completedDos: (tracking.completedDos || []).map(d => ({
+            id: d.id,
+            doId: d.doId,
+            category: d.category,
+            completedAt: d.completedAt,
+        })),
+        customDos: (tracking.customDos || []).map(d => ({
+            id: d.id,
+            text: d.text,
+            category: d.category,
+            completedAt: d.completedAt,
+        })),
+    };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GET /v1/tracking/today — Today's tracking data
+// GET /v1/tracking/today — Get today's tracking data
 // ─────────────────────────────────────────────────────────────────────────────
-router.get('/today', async (req, res, next) => {
+router.get('/today', requireAuth, async (req, res, next) => {
     try {
-        const { data } = await getOrCreateTrackingDoc(req.user.uid);
-        const programDay = calculateProgramDay(req.userProfile);
-        const focusedCornerstone = getFocusedCornerstone(programDay);
-
-        console.log(`[tracking/today] Returning tracking for uid: ${req.user.uid}, date: ${data.dateKey}`);
-
-        res.json({ tracking: data, programDay, focusedCornerstone });
+        const { data, created } = await getOrCreateTrackingDoc(req.user.uid);
+        console.log(`[tracking/today] uid: ${req.user.uid}, created: ${created}`);
+        res.json({ tracking: normalizeTracking(data), created });
     } catch (err) {
         console.error('[tracking/today] Error:', err.message);
         next(err);
@@ -64,9 +70,9 @@ router.get('/today', async (req, res, next) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GET /v1/tracking/history?days=30 — Historical tracking data
+// GET /v1/tracking/history — Get tracking history (default: 30 days)
 // ─────────────────────────────────────────────────────────────────────────────
-router.get('/history', async (req, res, next) => {
+router.get('/history', requireAuth, async (req, res, next) => {
     try {
         const days = Math.min(parseInt(req.query.days) || 30, 90);
         const startDate = new Date();
@@ -75,16 +81,13 @@ router.get('/history', async (req, res, next) => {
 
         console.log(`[tracking/history] Fetching ${days} days for uid: ${req.user.uid}, from: ${startKey}`);
 
-        const snapshot = await db.collection('users').doc(req.user.uid)
-            .collection('tracking')
-            .where('dateKey', '>=', startKey)
-            .orderBy('dateKey', 'desc')
-            .get();
-
-        const history = snapshot.docs.map(d => ({ dateKey: d.id, ...d.data() }));
+        const history = await getTrackingHistory(req.user.uid, startKey);
         console.log(`[tracking/history] Found ${history.length} tracking days`);
 
-        res.json({ history, days });
+        res.json({
+            history: history.map(normalizeTracking),
+            days,
+        });
     } catch (err) {
         console.error('[tracking/history] Error:', err.message);
         next(err);
@@ -92,22 +95,23 @@ router.get('/history', async (req, res, next) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /v1/tracking/feeling-score — Submit today's feeling score (1-10)
+// POST /v1/tracking/feeling-score — Record daily feeling score (1-10)
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/feeling-score', async (req, res, next) => {
+router.post('/feeling-score', requireAuth, async (req, res, next) => {
     try {
         const { score } = req.body;
 
-        if (typeof score !== 'number' || score < 1 || score > 10) {
-            return res.status(400).json({ error: 'score must be a number between 1 and 10' });
+        if (score === undefined || score < 1 || score > 10) {
+            return res.status(400).json({ error: 'score must be between 1 and 10' });
         }
 
-        const { ref, data } = await getOrCreateTrackingDoc(req.user.uid);
-        await ref.update({ feelingScore: score });
+        const dateKey = getDateKey();
+        await upsertTrackingDay(req.user.uid, dateKey, { feelingScore: Math.round(score) });
 
+        const tracking = await getTrackingDay(req.user.uid, dateKey);
         console.log(`[tracking/feeling-score] uid: ${req.user.uid}, score: ${score}`);
 
-        res.json({ tracking: { ...data, feelingScore: score } });
+        res.json({ tracking: normalizeTracking(tracking) });
     } catch (err) {
         console.error('[tracking/feeling-score] Error:', err.message);
         next(err);
@@ -117,7 +121,7 @@ router.post('/feeling-score', async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /v1/tracking/complete-do — Mark a Daily Do as completed
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/complete-do', async (req, res, next) => {
+router.post('/complete-do', requireAuth, async (req, res, next) => {
     try {
         const { doId, category } = req.body;
 
@@ -125,29 +129,26 @@ router.post('/complete-do', async (req, res, next) => {
             return res.status(400).json({ error: 'doId is required' });
         }
 
-        const { ref, data } = await getOrCreateTrackingDoc(req.user.uid);
+        const dateKey = getDateKey();
+
+        // Ensure tracking day exists
+        await getOrCreateTrackingDoc(req.user.uid);
 
         // Check if already completed
-        const alreadyDone = data.completedDos.some(d => d.doId === doId);
+        const tracking = await getTrackingDay(req.user.uid, dateKey);
+        const completedDos = tracking.completedDos || [];
+        const alreadyDone = completedDos.some(d => d.doId === doId);
+
         if (alreadyDone) {
             console.log(`[tracking/complete-do] Already completed: ${doId}`);
-            return res.json({ tracking: data, alreadyCompleted: true });
+            return res.json({ tracking: normalizeTracking(tracking), alreadyCompleted: true });
         }
 
-        // Add to completed list
-        const completedDos = [...data.completedDos, { doId, completedAt: new Date().toISOString() }];
+        await insertCompletedDo(req.user.uid, dateKey, doId, category || null);
+        console.log(`[tracking/complete-do] uid: ${req.user.uid}, doId: ${doId}`);
 
-        // Update cornerstone progress
-        const cornerstoneProgress = { ...data.cornerstoneProgress };
-        if (category && cornerstoneProgress[category] !== undefined) {
-            cornerstoneProgress[category] += 1;
-        }
-
-        await ref.update({ completedDos, cornerstoneProgress });
-
-        console.log(`[tracking/complete-do] uid: ${req.user.uid}, doId: ${doId}, category: ${category || 'none'}`);
-
-        res.json({ tracking: { ...data, completedDos, cornerstoneProgress } });
+        const updated = await getTrackingDay(req.user.uid, dateKey);
+        res.json({ tracking: normalizeTracking(updated) });
     } catch (err) {
         console.error('[tracking/complete-do] Error:', err.message);
         next(err);
@@ -155,31 +156,35 @@ router.post('/complete-do', async (req, res, next) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /v1/tracking/uncomplete-do — Unmark a Daily Do
+// POST /v1/tracking/uncomplete-do — Undo a completed Daily Do
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/uncomplete-do', async (req, res, next) => {
+router.post('/uncomplete-do', requireAuth, async (req, res, next) => {
     try {
-        const { doId, category } = req.body;
+        const { doId } = req.body;
 
         if (!doId) {
             return res.status(400).json({ error: 'doId is required' });
         }
 
-        const { ref, data } = await getOrCreateTrackingDoc(req.user.uid);
+        const dateKey = getDateKey();
+        const tracking = await getTrackingDay(req.user.uid, dateKey);
 
-        const completedDos = data.completedDos.filter(d => d.doId !== doId);
-
-        // Decrement cornerstone progress
-        const cornerstoneProgress = { ...data.cornerstoneProgress };
-        if (category && cornerstoneProgress[category] !== undefined && cornerstoneProgress[category] > 0) {
-            cornerstoneProgress[category] -= 1;
+        if (!tracking) {
+            return res.status(404).json({ error: 'No tracking record for today' });
         }
 
-        await ref.update({ completedDos, cornerstoneProgress });
+        const completedDos = tracking.completedDos || [];
+        const found = completedDos.find(d => d.doId === doId);
 
+        if (!found) {
+            return res.status(404).json({ error: 'Do not found in completed list' });
+        }
+
+        await deleteCompletedDo(found.id);
         console.log(`[tracking/uncomplete-do] uid: ${req.user.uid}, doId: ${doId}`);
 
-        res.json({ tracking: { ...data, completedDos, cornerstoneProgress } });
+        const updated = await getTrackingDay(req.user.uid, dateKey);
+        res.json({ tracking: normalizeTracking(updated) });
     } catch (err) {
         console.error('[tracking/uncomplete-do] Error:', err.message);
         next(err);
@@ -187,37 +192,24 @@ router.post('/uncomplete-do', async (req, res, next) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /v1/tracking/custom-do — Add and complete a custom do
+// POST /v1/tracking/custom-do — Add a custom Do (immediately completed)
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/custom-do', async (req, res, next) => {
+router.post('/custom-do', requireAuth, async (req, res, next) => {
     try {
         const { text, category } = req.body;
 
-        if (!text || typeof text !== 'string' || text.trim().length === 0) {
+        if (!text || !text.trim()) {
             return res.status(400).json({ error: 'text is required' });
         }
 
-        const { ref, data } = await getOrCreateTrackingDoc(req.user.uid);
+        const dateKey = getDateKey();
+        await getOrCreateTrackingDoc(req.user.uid);
 
-        const customDo = {
-            text: text.trim(),
-            category: category || 'general',
-            completedAt: new Date().toISOString(),
-        };
+        await insertCustomDo(req.user.uid, dateKey, text.trim(), category || 'general');
+        console.log(`[tracking/custom-do] uid: ${req.user.uid}, text: "${text.trim()}"`);
 
-        const completedCustomDos = [...data.completedCustomDos, customDo];
-
-        // Update cornerstone progress if valid category
-        const cornerstoneProgress = { ...data.cornerstoneProgress };
-        if (category && cornerstoneProgress[category] !== undefined) {
-            cornerstoneProgress[category] += 1;
-        }
-
-        await ref.update({ completedCustomDos, cornerstoneProgress });
-
-        console.log(`[tracking/custom-do] uid: ${req.user.uid}, text: "${text}", category: ${category || 'general'}`);
-
-        res.json({ tracking: { ...data, completedCustomDos, cornerstoneProgress } });
+        const updated = await getTrackingDay(req.user.uid, dateKey);
+        res.json({ tracking: normalizeTracking(updated) });
     } catch (err) {
         console.error('[tracking/custom-do] Error:', err.message);
         next(err);
@@ -225,80 +217,75 @@ router.post('/custom-do', async (req, res, next) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GET /v1/tracking/report — Aggregated trends and report data
+// GET /v1/tracking/report — Aggregated wellness report
 // ─────────────────────────────────────────────────────────────────────────────
-router.get('/report', async (req, res, next) => {
+router.get('/report', requireAuth, async (req, res, next) => {
     try {
         const days = Math.min(parseInt(req.query.days) || 30, 90);
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - days);
         const startKey = getDateKey(startDate);
 
-        const snapshot = await db.collection('users').doc(req.user.uid)
-            .collection('tracking')
-            .where('dateKey', '>=', startKey)
-            .orderBy('dateKey', 'asc')
-            .get();
+        const history = await getTrackingHistory(req.user.uid, startKey);
 
-        const history = snapshot.docs.map(d => ({ dateKey: d.id, ...d.data() }));
-
-        // Calculate aggregated stats
+        // Aggregate metrics
         const totalDosCompleted = history.reduce((sum, day) =>
-            sum + (day.completedDos?.length || 0) + (day.completedCustomDos?.length || 0), 0);
+            sum + (day.completedDos?.length || 0) + (day.customDos?.length || 0), 0);
 
-        const feelingScores = history.filter(d => d.feelingScore != null).map(d => d.feelingScore);
-        const avgFeelingScore = feelingScores.length > 0
-            ? (feelingScores.reduce((a, b) => a + b, 0) / feelingScores.length).toFixed(1)
+        const scoresWithValues = history.filter(d => d.feelingScore !== null);
+        const avgFeelingScore = scoresWithValues.length > 0
+            ? Math.round((scoresWithValues.reduce((sum, d) => sum + d.feelingScore, 0) / scoresWithValues.length) * 10) / 10
             : null;
 
-        // Trend: compare last 7 days vs previous 7 days
-        const last7 = history.filter(d => {
-            const diff = (new Date() - new Date(d.dateKey)) / (1000 * 60 * 60 * 24);
-            return diff <= 7;
-        });
-        const prev7 = history.filter(d => {
-            const diff = (new Date() - new Date(d.dateKey)) / (1000 * 60 * 60 * 24);
-            return diff > 7 && diff <= 14;
-        });
+        // Trend: compare last 7 days avg vs previous 7 days avg
+        const now = new Date();
+        const last7Start = getDateKey(new Date(now.getTime() - 7 * 86400000));
+        const prev7Start = getDateKey(new Date(now.getTime() - 14 * 86400000));
 
-        const last7Dos = last7.reduce((s, d) => s + (d.completedDos?.length || 0) + (d.completedCustomDos?.length || 0), 0);
-        const prev7Dos = prev7.reduce((s, d) => s + (d.completedDos?.length || 0) + (d.completedCustomDos?.length || 0), 0);
+        const last7 = scoresWithValues.filter(d => d.dateKey >= last7Start);
+        const prev7 = scoresWithValues.filter(d => d.dateKey >= prev7Start && d.dateKey < last7Start);
 
-        const trend = prev7Dos > 0
-            ? Math.round(((last7Dos - prev7Dos) / prev7Dos) * 100)
-            : null;
+        const last7Avg = last7.length ? last7.reduce((s, d) => s + d.feelingScore, 0) / last7.length : null;
+        const prev7Avg = prev7.length ? prev7.reduce((s, d) => s + d.feelingScore, 0) / prev7.length : null;
 
-        // Cornerstone totals
-        const cornerstoneTotals = {
-            nutrition: 0, movement: 0, sleep: 0, stress_management: 0,
-            social_connection: 0, cognitive_health: 0, healthy_aging: 0,
-        };
-        history.forEach(day => {
-            if (day.cornerstoneProgress) {
-                for (const [key, val] of Object.entries(day.cornerstoneProgress)) {
-                    if (cornerstoneTotals[key] !== undefined) cornerstoneTotals[key] += val;
+        let trend = 'stable';
+        if (last7Avg !== null && prev7Avg !== null) {
+            if (last7Avg > prev7Avg + 0.5) trend = 'improving';
+            else if (last7Avg < prev7Avg - 0.5) trend = 'declining';
+        }
+
+        // Cornerstone breakdown
+        const cornerstoneTotals = {};
+        for (const day of history) {
+            for (const d of (day.completedDos || [])) {
+                if (d.category) {
+                    cornerstoneTotals[d.category] = (cornerstoneTotals[d.category] || 0) + 1;
                 }
             }
-        });
+            for (const d of (day.customDos || [])) {
+                if (d.category) {
+                    cornerstoneTotals[d.category] = (cornerstoneTotals[d.category] || 0) + 1;
+                }
+            }
+        }
 
         // Daily breakdown for charts
         const dailyBreakdown = history.map(day => ({
             dateKey: day.dateKey,
-            dosCompleted: (day.completedDos?.length || 0) + (day.completedCustomDos?.length || 0),
             feelingScore: day.feelingScore,
+            dosCompleted: (day.completedDos?.length || 0) + (day.customDos?.length || 0),
         }));
 
-        console.log(`[tracking/report] uid: ${req.user.uid}, days: ${days}, totalDos: ${totalDosCompleted}, avgScore: ${avgFeelingScore}`);
+        console.log(`[tracking/report] uid: ${req.user.uid}, ${days} days, ${totalDosCompleted} dos, avg: ${avgFeelingScore}`);
 
         res.json({
             days,
+            totalDaysTracked: history.length,
             totalDosCompleted,
-            avgFeelingScore: avgFeelingScore ? parseFloat(avgFeelingScore) : null,
+            avgFeelingScore,
             trend,
             cornerstoneTotals,
             dailyBreakdown,
-            feelingScores: history.map(d => ({ dateKey: d.dateKey, score: d.feelingScore })),
-            activeDays: history.length,
         });
     } catch (err) {
         console.error('[tracking/report] Error:', err.message);

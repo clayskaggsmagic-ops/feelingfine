@@ -11,6 +11,18 @@
 
 ---
 
+## 🔴 DATABASE IS PostgreSQL VIA FIREBASE DATA CONNECT — NOT FIRESTORE 🔴
+- **ALL data lives in Cloud SQL PostgreSQL**, managed through Firebase Data Connect
+- Schema is defined in `dataconnect/schema/schema.gql` (GraphQL → auto-generates SQL tables)
+- Queries/mutations are in `dataconnect/connector/queries.gql` and `mutations.gql`
+- **NEVER** import Firestore `db` for data operations — use `dataConnect.js` exclusively
+- **ALL** data access goes through `backend/src/services/dataConnect.js`
+- Firebase Auth (`auth`) is still used for authentication tokens — that is separate from the database
+- Seed data goes to PostgreSQL via `insertMany()` — NOT Firestore `batch.set()`
+- Data Connect service config: `serviceId: 'feelingfine'`, `location: 'us-east4'`
+
+---
+
 ## 1. SEARCH BEFORE INSTALLING DEPENDENCIES
 - Training data is OUTDATED
 - Before adding ANY package:
@@ -27,24 +39,32 @@
 - NEVER duplicate logic between frontend and backend
 - If copying code, refactor into shared modules
 
-## 3. KEEP IT SIMPLE
+## 3. FRONTENDS ARE FULLY INDEPENDENT & MODULAR
+- **Each frontend is its own codebase**: `frontend-web` (desktop/tablet), `frontend-admin`, and future iOS app
+- **Changing one frontend MUST NOT require changes to any other frontend**
+- **All frontends consume the same REST API** — no shared runtime state between them
+- Shared design tokens (`design-tokens.css`) are the ONLY cross-frontend dependency
+- No frontend should import code from another frontend directory
+- Each frontend can be deployed, updated, and versioned independently
+
+## 4. KEEP IT SIMPLE
 - Prefer fewer files with clear responsibilities
 - Avoid premature abstraction
 - Every file should have an obvious purpose
 - If you can't explain a file in one sentence, split it
 
-## 4. DEBUGGING IS PARAMOUNT
+## 5. DEBUGGING IS PARAMOUNT
 - Comprehensive logging at every decision point
 - Structured logs on the backend
 - Error boundaries with clear messages, not silent failures
 
-## 5. TESTING IS MANDATORY
+## 6. TESTING IS MANDATORY
 - Unit tests for critical backend logic
 - Integration tests for API endpoints
 - Test error handling paths
 - Test frontend displays correct data
 
-## 6. NO AI-LOOKING DESIGN
+## 7. NO AI-LOOKING DESIGN
 - **NO** emojis in the UI (use proper icons instead)
 - **NO** clutter — white space is luxury
 

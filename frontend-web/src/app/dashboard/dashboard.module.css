@@ -1,0 +1,887 @@
+.page {
+    min-height: 100dvh;
+    padding-top: 64px;
+    padding-bottom: var(--ff-space-2xl);
+    background: var(--ff-color-bg-primary);
+}
+
+/* ─── Loading ─── */
+
+.loadingWrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    gap: var(--ff-space-md);
+    color: var(--ff-color-text-secondary);
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #e2e8f0;
+    border-top-color: var(--ff-color-brand-primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ─── Top Bar ─── */
+
+.topBar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--ff-space-md);
+    background: var(--ff-glass-bg);
+    backdrop-filter: blur(var(--ff-glass-blur));
+    border-bottom: 1px solid var(--ff-glass-border);
+    z-index: 100;
+}
+
+.logoLink {
+    text-decoration: none;
+}
+
+.logoMark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--ff-radius-sm);
+    background: var(--ff-color-brand-gradient);
+    color: var(--ff-color-text-inverse);
+    font-family: var(--ff-font-serif);
+    font-size: var(--ff-font-size-sm);
+    font-weight: var(--ff-font-weight-bold);
+}
+
+/* ─── Hamburger ─── */
+
+.hamburger {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    background: none;
+    border: none;
+    padding: 8px;
+    min-height: auto;
+    cursor: pointer;
+}
+
+.hamburgerLine {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: var(--ff-color-text-primary);
+    border-radius: 2px;
+    transition: all var(--ff-transition-fast);
+}
+
+.hamburgerLine.open:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+}
+
+.hamburgerLine.open:nth-child(2) {
+    opacity: 0;
+}
+
+.hamburgerLine.open:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+}
+
+/* ─── Slide-out Menu ─── */
+
+.menu {
+    position: fixed;
+    top: 56px;
+    right: 0;
+    width: 260px;
+    background: var(--ff-glass-bg);
+    backdrop-filter: blur(12px);
+    border-left: 1px solid var(--ff-glass-border);
+    border-bottom: 1px solid var(--ff-glass-border);
+    border-radius: 0 0 0 var(--ff-radius-lg);
+    padding: var(--ff-space-md);
+    z-index: 99;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    animation: slideIn 0.25s ease-out;
+    box-shadow: var(--ff-shadow-lg);
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.menuItem {
+    display: block;
+    padding: var(--ff-space-sm) var(--ff-space-md);
+    border-radius: var(--ff-radius-sm);
+    color: var(--ff-color-text-primary);
+    font-weight: var(--ff-font-weight-medium);
+    text-decoration: none;
+    transition: background var(--ff-transition-fast);
+}
+
+.menuItem:hover {
+    background: var(--ff-color-bg-tertiary);
+    color: var(--ff-color-brand-primary);
+}
+
+.menuLogout {
+    margin-top: var(--ff-space-sm);
+    padding: var(--ff-space-sm) var(--ff-space-md);
+    border-radius: var(--ff-radius-sm);
+    background: none;
+    color: var(--ff-color-text-secondary);
+    font-weight: var(--ff-font-weight-medium);
+    text-align: left;
+    border: 1px solid #e2e8f0;
+    min-height: auto;
+}
+
+.menuLogout:hover {
+    border-color: var(--ff-color-error);
+    color: var(--ff-color-error);
+}
+
+/* ─── Greeting ─── */
+
+.greeting {
+    margin-bottom: var(--ff-space-xl);
+    animation: fadeUp 0.6s ease-out;
+}
+
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.greeting h1 {
+    font-family: var(--ff-font-serif);
+    color: var(--ff-color-brand-primary);
+    margin-bottom: 4px;
+}
+
+.date {
+    color: var(--ff-color-text-secondary);
+    font-size: var(--ff-font-size-sm);
+}
+
+.dayBadge {
+    display: inline-block;
+    margin-top: var(--ff-space-xs);
+    padding: 4px 14px;
+    background: rgba(44, 122, 123, 0.08);
+    color: var(--ff-color-brand-primary);
+    border-radius: var(--ff-radius-full);
+    font-size: var(--ff-font-size-xs);
+    font-weight: var(--ff-font-weight-semibold);
+}
+
+/* ─── Sections ─── */
+
+.section {
+    margin-bottom: var(--ff-space-xl);
+}
+
+.sectionTitle {
+    font-size: var(--ff-font-size-lg);
+    margin-bottom: var(--ff-space-md);
+}
+
+/* ─── Daily Dose Card ─── */
+
+.doseCard {
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    min-height: 160px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.doseCard.doseRevealed {
+    cursor: default;
+}
+
+.doseTitle {
+    color: var(--ff-color-brand-primary);
+    font-family: var(--ff-font-serif);
+    font-size: var(--ff-font-size-xl);
+    margin-bottom: var(--ff-space-sm);
+}
+
+.doseTease {
+    color: var(--ff-color-text-secondary);
+    font-style: italic;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 0.6;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+.doseMessage {
+    animation: revealDose 0.6s ease-out;
+}
+
+@keyframes revealDose {
+    from {
+        opacity: 0;
+        max-height: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        max-height: 500px;
+        transform: translateY(0);
+    }
+}
+
+.doseMessage p {
+    font-family: var(--ff-font-serif);
+    font-size: var(--ff-font-size-lg);
+    line-height: var(--ff-line-height-relaxed);
+    color: var(--ff-color-text-primary);
+}
+
+.dosePill {
+    display: inline-block;
+    margin-top: var(--ff-space-md);
+    padding: 4px 14px;
+    background: rgba(44, 122, 123, 0.06);
+    border: 1px solid rgba(44, 122, 123, 0.15);
+    color: var(--ff-color-brand-primary);
+    border-radius: var(--ff-radius-full);
+    font-size: var(--ff-font-size-xs);
+    font-weight: var(--ff-font-weight-medium);
+    text-transform: capitalize;
+}
+
+.doseLoading {
+    color: var(--ff-color-text-secondary);
+    text-align: center;
+    padding: var(--ff-space-lg) 0;
+}
+
+/* ─── Feeling Score ─── */
+
+.feelingCard {
+    cursor: default;
+    text-align: center;
+    padding: var(--ff-space-lg);
+}
+
+.feelingCard:hover {
+    transform: none;
+}
+
+.feelingRow {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: var(--ff-space-sm);
+}
+
+.feelingCircle {
+    width: var(--ff-touch-min);
+    height: var(--ff-touch-min);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ff-color-bg-secondary);
+    border: 2px solid #e2e8f0;
+    font-size: var(--ff-font-size-sm);
+    font-weight: var(--ff-font-weight-semibold);
+    color: var(--ff-color-text-secondary);
+    padding: 0;
+    min-height: var(--ff-touch-min);
+    transition: all var(--ff-transition-fast);
+}
+
+.feelingCircle:hover {
+    border-color: var(--ff-color-brand-secondary);
+    color: var(--ff-color-brand-primary);
+    transform: scale(1.1);
+}
+
+.feelingSelected {
+    background: var(--ff-color-brand-gradient);
+    color: var(--ff-color-text-inverse);
+    border-color: transparent;
+    box-shadow: var(--ff-shadow-md);
+    transform: scale(1.15);
+}
+
+.feelingLabels {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--ff-font-size-xs);
+    color: var(--ff-color-text-secondary);
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.feelingDone {
+    padding: var(--ff-space-md) 0;
+    animation: fadeUp 0.4s ease-out;
+}
+
+.feelingBigNum {
+    display: block;
+    font-size: 56px;
+    font-weight: var(--ff-font-weight-bold);
+    color: var(--ff-color-brand-primary);
+    font-family: var(--ff-font-serif);
+    margin-bottom: var(--ff-space-xs);
+}
+
+.feelingDone p {
+    color: var(--ff-color-text-secondary);
+}
+
+/* ─── Pop-up Banner ─── */
+
+.bannerOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: var(--ff-space-lg);
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.bannerCard {
+    background: var(--ff-color-bg-secondary);
+    border-radius: var(--ff-radius-lg);
+    padding: var(--ff-space-xl) var(--ff-space-lg);
+    max-width: 520px;
+    width: 100%;
+    position: relative;
+    box-shadow: var(--ff-shadow-lg);
+    text-align: center;
+    animation: scaleIn 0.3s ease-out;
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.bannerClose {
+    position: absolute;
+    top: var(--ff-space-sm);
+    right: var(--ff-space-sm);
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: var(--ff-color-text-secondary);
+    width: var(--ff-touch-min);
+    height: var(--ff-touch-min);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    padding: 0;
+    min-height: auto;
+}
+
+.bannerClose:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--ff-color-text-primary);
+}
+
+.bannerTitle {
+    font-family: var(--ff-font-serif);
+    color: var(--ff-color-brand-primary);
+    font-size: var(--ff-font-size-xl);
+    margin-bottom: var(--ff-space-md);
+}
+
+.bannerText {
+    font-family: var(--ff-font-serif);
+    font-size: var(--ff-font-size-base);
+    line-height: var(--ff-line-height-relaxed);
+    color: var(--ff-color-text-primary);
+    margin-bottom: var(--ff-space-md);
+}
+
+.bannerQuestion {
+    font-weight: var(--ff-font-weight-semibold);
+    color: var(--ff-color-brand-primary);
+    font-size: var(--ff-font-size-base);
+    margin-bottom: var(--ff-space-lg);
+}
+
+.bannerCta {
+    min-width: 200px;
+}
+
+/* ─── Today's Focus & Daily Dos (Prompt 8) ─── */
+
+.focusBadge {
+    display: inline-block;
+    padding: 4px 12px;
+    background: var(--ff-color-brand-gradient);
+    color: var(--ff-color-text-inverse);
+    border-radius: var(--ff-radius-full);
+    font-size: var(--ff-font-size-xs);
+    font-weight: var(--ff-font-weight-bold);
+    letter-spacing: 0.08em;
+    margin-bottom: var(--ff-space-sm);
+}
+
+.focusHeader {
+    display: flex;
+    align-items: center;
+    gap: var(--ff-space-sm);
+    margin-bottom: var(--ff-space-xs);
+}
+
+.focusIcon {
+    width: 32px;
+    height: 32px;
+    color: var(--ff-color-brand-primary);
+    flex-shrink: 0;
+}
+
+.focusIcon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.focusName {
+    font-size: 28px;
+    font-weight: var(--ff-font-weight-bold);
+    color: var(--ff-color-text-primary);
+    text-transform: capitalize;
+}
+
+.focusDesc {
+    color: var(--ff-color-text-secondary);
+    margin-bottom: var(--ff-space-md);
+    max-width: 600px;
+}
+
+/* Progress bar */
+
+.progressRow {
+    display: flex;
+    align-items: center;
+    gap: var(--ff-space-sm);
+    margin-bottom: var(--ff-space-md);
+    font-size: var(--ff-font-size-sm);
+    color: var(--ff-color-text-secondary);
+}
+
+.progressBarSmall {
+    flex: 1;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: var(--ff-radius-full);
+    overflow: hidden;
+}
+
+.progressFillSmall {
+    height: 100%;
+    background: var(--ff-color-brand-gradient);
+    border-radius: var(--ff-radius-full);
+    transition: width var(--ff-transition-normal);
+}
+
+/* Daily Dos card — different from dose card */
+
+.dosCard {
+    cursor: default;
+}
+
+.dosCard:hover {
+    transform: none;
+}
+
+.emptyDos {
+    text-align: center;
+    color: var(--ff-color-text-secondary);
+    padding: var(--ff-space-md) 0;
+}
+
+.dosList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.doItem {
+    display: flex;
+    align-items: center;
+    gap: var(--ff-space-sm);
+    padding: var(--ff-space-sm) 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.doItem:last-child {
+    border-bottom: none;
+}
+
+.doCheck {
+    width: var(--ff-touch-min);
+    height: var(--ff-touch-min);
+    min-height: var(--ff-touch-min);
+    border-radius: var(--ff-radius-sm);
+    border: 2px solid #d1d5db;
+    background: var(--ff-color-bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 0;
+    cursor: pointer;
+    transition: all var(--ff-transition-fast);
+}
+
+.doCheck svg {
+    width: 20px;
+    height: 20px;
+}
+
+.doCheck:hover {
+    border-color: var(--ff-color-brand-primary);
+}
+
+.doChecked {
+    background: var(--ff-color-brand-primary);
+    border-color: var(--ff-color-brand-primary);
+    color: var(--ff-color-text-inverse);
+}
+
+.doText {
+    font-size: var(--ff-font-size-base);
+    line-height: var(--ff-line-height-normal);
+    flex: 1;
+}
+
+.doTextDone {
+    text-decoration: line-through;
+    color: var(--ff-color-text-secondary);
+}
+
+.customBadge {
+    font-size: 11px;
+    padding: 2px 8px;
+    background: rgba(44, 122, 123, 0.06);
+    color: var(--ff-color-brand-primary);
+    border-radius: var(--ff-radius-full);
+    font-weight: var(--ff-font-weight-medium);
+}
+
+/* Add custom do input */
+
+.addDo {
+    display: flex;
+    align-items: center;
+    gap: var(--ff-space-xs);
+    padding-top: var(--ff-space-md);
+    border-top: 1px solid rgba(0, 0, 0, 0.04);
+    margin-top: var(--ff-space-xs);
+}
+
+.addDoInput {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: var(--ff-font-size-sm);
+    padding: var(--ff-space-xs) 0;
+    color: var(--ff-color-text-primary);
+    outline: none;
+}
+
+.addDoInput::placeholder {
+    color: var(--ff-color-text-secondary);
+    opacity: 0.6;
+}
+
+.addDoBtn {
+    width: 40px;
+    height: 40px;
+    min-height: auto;
+    border-radius: 50%;
+    background: var(--ff-color-bg-tertiary);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ff-color-brand-primary);
+    padding: 0;
+    flex-shrink: 0;
+    transition: all var(--ff-transition-fast);
+}
+
+.addDoBtn:hover:not(:disabled) {
+    background: var(--ff-color-brand-primary);
+    color: var(--ff-color-text-inverse);
+}
+
+.addDoBtn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.addDoBtn svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* Other Cornerstones */
+
+.showOther {
+    display: flex;
+    align-items: center;
+    gap: var(--ff-space-xs);
+    background: none;
+    border: none;
+    color: var(--ff-color-brand-primary);
+    font-size: var(--ff-font-size-base);
+    font-weight: var(--ff-font-weight-semibold);
+    padding: 0;
+    min-height: var(--ff-touch-min);
+    cursor: pointer;
+}
+
+.chevron {
+    width: 20px;
+    height: 20px;
+    transition: transform var(--ff-transition-fast);
+}
+
+.chevronOpen {
+    transform: rotate(180deg);
+}
+
+.cornerstoneList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ff-space-sm);
+    margin-top: var(--ff-space-md);
+    animation: fadeUp 0.3s ease-out;
+}
+
+.cornerstoneCard {
+    padding: 0;
+    cursor: default;
+}
+
+.cornerstoneCard:hover {
+    transform: none;
+}
+
+.cornerstoneHeader {
+    display: flex;
+    align-items: center;
+    gap: var(--ff-space-sm);
+    width: 100%;
+    padding: var(--ff-space-md);
+    background: none;
+    border: none;
+    cursor: pointer;
+    min-height: var(--ff-touch-min);
+    text-align: left;
+}
+
+.cornerstoneIcon {
+    width: 24px;
+    height: 24px;
+    color: var(--ff-color-brand-primary);
+    flex-shrink: 0;
+}
+
+.cornerstoneIcon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.cornerstoneName {
+    flex: 1;
+    font-weight: var(--ff-font-weight-semibold);
+    text-transform: capitalize;
+    font-size: var(--ff-font-size-base);
+}
+
+.chevronSmall {
+    width: 16px;
+    height: 16px;
+    color: var(--ff-color-text-secondary);
+    transition: transform var(--ff-transition-fast);
+}
+
+.cornerstoneBody {
+    padding: 0 var(--ff-space-md) var(--ff-space-md);
+    color: var(--ff-color-text-secondary);
+    font-size: var(--ff-font-size-sm);
+    animation: fadeIn 0.2s ease-out;
+}
+
+/* ─── Mobile Responsive Overrides ─── */
+
+@media (max-width: 768px) {
+    .page {
+        padding-top: 56px;
+        padding-bottom: 80px;
+        /* Space for bottom tab bar */
+    }
+
+    .topBar {
+        padding: 0 16px;
+        height: 56px;
+    }
+
+    /* Daily Dose card — 40% viewport height */
+    .doseCard {
+        min-height: 40vh;
+        border-radius: 16px;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .doseTitle {
+        font-size: 1.25rem;
+    }
+
+    .doseTease {
+        font-size: 0.95rem;
+    }
+
+    /* Full-width sections */
+    .section {
+        margin: 0 0 1rem 0;
+        padding: 0 16px;
+    }
+
+    /* Daily Dos - touch optimized */
+    .doItem {
+        padding: 0.75rem;
+        min-height: 52px;
+    }
+
+    .doCheckbox {
+        width: 28px;
+        height: 28px;
+        min-width: 28px;
+    }
+
+    /* Cornerstones as full-width accordion list */
+    .cornerstoneGrid {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .cornerstoneCard {
+        border-radius: 0;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        margin: 0;
+    }
+
+    .cornerstoneCard:first-child {
+        border-radius: 12px 12px 0 0;
+    }
+
+    .cornerstoneCard:last-child {
+        border-radius: 0 0 12px 12px;
+        border-bottom: none;
+    }
+
+    /* Remove hover on touch */
+    .cornerstoneCard:hover {
+        transform: none;
+        box-shadow: none;
+    }
+
+    .cornerstoneRow {
+        padding: 0.85rem 1rem;
+    }
+
+    /* Feeling score buttons */
+    .scoreOption {
+        min-width: 48px;
+        min-height: 48px;
+        font-size: 1.5rem;
+    }
+}
+
+/* Small phones */
+@media (max-width: 375px) {
+    .doseCard {
+        min-height: 35vh;
+    }
+
+    .doseTitle {
+        font-size: 1.1rem;
+    }
+}

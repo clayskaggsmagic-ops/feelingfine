@@ -207,3 +207,106 @@ select:focus {
   white-space: nowrap;
   border: 0;
 }
+
+/* ─── Touch Device Overrides ─── */
+/* Remove hover effects on touch devices */
+
+@media (hover: none) and (pointer: coarse) {
+  .card:hover {
+    transform: none;
+    box-shadow: var(--ff-shadow-md);
+  }
+
+  .btn-primary:hover {
+    transform: none;
+    box-shadow: var(--ff-shadow-sm);
+  }
+
+  .btn-secondary:hover {
+    background: transparent;
+  }
+
+  a:hover {
+    color: var(--ff-color-brand-primary);
+  }
+
+  /* Add active states for touch feedback */
+  .btn-primary:active {
+    transform: scale(0.97);
+    opacity: 0.9;
+  }
+
+  .btn-secondary:active {
+    background: var(--ff-color-bg-tertiary);
+  }
+
+  .card:active {
+    transform: scale(0.98);
+  }
+}
+
+/* ─── Mobile Responsive — Phones (≤ 768px) ─── */
+
+@media (max-width: 768px) {
+  :root {
+    --ff-page-padding: 16px;
+    --ff-space-lg: 1.25rem;
+    --ff-font-size-2xl: 28px;
+    --ff-font-size-xl: 22px;
+    --ff-font-size-lg: 18px;
+    --ff-font-size-base: 16px;
+  }
+
+  body {
+    padding-bottom: 72px;
+    /* Space for mobile bottom tab bar */
+  }
+
+  .container {
+    padding: 0 16px;
+  }
+
+  /* Full-width cards on mobile */
+  .card {
+    border-radius: var(--ff-radius-md);
+    padding: var(--ff-space-sm);
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  /* Ensure touch targets are 48px minimum */
+  button,
+  a,
+  [role="button"],
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-height: var(--ff-touch-min);
+    min-width: var(--ff-touch-min);
+  }
+}
+
+/* ─── Small Phones (≤ 375px) ─── */
+
+@media (max-width: 375px) {
+  :root {
+    --ff-page-padding: 12px;
+    --ff-font-size-2xl: 24px;
+    --ff-font-size-xl: 20px;
+  }
+}
+
+/* ─── Tablets (768px — 1024px) ─── */
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .container {
+    max-width: 720px;
+  }
+}
+
+/* ─── Large Desktops (≥ 1440px) ─── */
+
+@media (min-width: 1440px) {
+  :root {
+    --ff-content-max-width: 900px;
+  }
+}

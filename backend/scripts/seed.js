@@ -1,38 +1,75 @@
 /**
- * Firestore Seed Script — Populates ALL content from read.md Appendix F.
+ * PostgreSQL Seed Script — Populates ALL content from read.md Appendix F.
  *
- * Collections created:
- *   /cornerstones       — 7 cornerstone definitions
- *   /dailyDos           — 140 tasks (20 per cornerstone)
- *   /dailyDoses         — 7 Week 1 doses + 10 rotating post-program doses
- *   /surveys            — 1 onboarding survey (18 questions) + 7 daily check-in banners
- *   /appSettings        — Default app settings (including hashed admin passcode)
- *   /emailTemplates     — Default email template
+ * Tables seeded:
+ *   cornerstone      — 7 cornerstone definitions
+ *   dailyDo          — 140 tasks (20 per cornerstone)
+ *   dailyDose        — 7 Week 1 doses + 10 rotating post-program doses
+ *   survey           — 1 onboarding survey (18 questions) + 7 daily check-in banners
+ *   appSetting       — Default app settings (including hashed admin passcode)
+ *   emailTemplate    — Default email template
  *
  * Usage: node scripts/seed.js
  */
 
 import 'dotenv/config';
-import { db } from '../src/services/firebase.js';
+import '../src/services/firebase.js';
+import { insertMany, mutate } from '../src/services/dataConnect.js';
 import bcrypt from 'bcrypt';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const now = new Date().toISOString();
-let totalDocs = 0;
+let totalRows = 0;
 
-async function seedCollection(name, docs) {
-    console.log(`\n  Seeding /${name} (${docs.length} docs)...`);
-    const batch = db.batch();
-    for (const doc of docs) {
-        const id = doc._id || doc.id;
-        delete doc._id;
-        const ref = id ? db.collection(name).doc(id) : db.collection(name).doc();
-        batch.set(ref, doc);
+// Tables in reverse dependency order for safe deletion
+const ALL_TABLES = ['surveyResponse', 'completedDo', 'customDo', 'trackingDay', 'survey', 'emailTemplate', 'appSetting', 'dailyDo', 'dailyDose', 'cornerstone'];
+
+async function clearAllTables() {
+    console.log('\n  Clearing existing data...');
+    for (const table of ALL_TABLES) {
+        try {
+            // Delete all rows using a wildcard mutation
+            await mutate(`mutation { ${table}_deleteMany(all: true) }`);
+            console.log(`    ✓ Cleared ${table}`);
+        } catch (e) {
+            // Table might be empty or not exist yet — skip
+            console.log(`    - ${table}: ${e.message.slice(0, 60)}`);
+        }
     }
-    await batch.commit();
-    totalDocs += docs.length;
-    console.log(`  ✓ ${docs.length} docs written to /${name}`);
+}
+
+async function seedTable(tableName, rows) {
+    console.log(`\n  Seeding ${tableName} (${rows.length} rows)...`);
+    // Clean up _id fields — Data Connect uses 'id' for string PKs
+    // Also JSON.stringify fields stored as String columns (not native list types)
+    const JSON_FIELDS = ['questions', 'answers'];
+    const cleaned = rows.map(row => {
+        const copy = { ...row };
+        if (copy._id) {
+            copy.id = copy._id;
+            delete copy._id;
+        }
+        for (const field of JSON_FIELDS) {
+            if (copy[field] !== undefined && typeof copy[field] !== 'string') {
+                copy[field] = JSON.stringify(copy[field]);
+            }
+        }
+        return copy;
+    });
+    // insertMany requires all rows to have identical columns — fill missing with null
+    const allKeys = new Set();
+    for (const row of cleaned) {
+        for (const key of Object.keys(row)) allKeys.add(key);
+    }
+    for (const row of cleaned) {
+        for (const key of allKeys) {
+            if (!(key in row)) row[key] = null;
+        }
+    }
+    await insertMany(tableName, cleaned);
+    totalRows += rows.length;
+    console.log(`  ✓ ${rows.length} rows written to ${tableName}`);
 }
 
 // ─── 1. Cornerstones ────────────────────────────────────────────────────────
@@ -457,20 +494,23 @@ const emailTemplate = {
 
 async function seed() {
     console.log('\n═══════════════════════════════════════════');
-    console.log('  Feeling Fine — Firestore Seed Script');
+    console.log('  Feeling Fine — PostgreSQL Seed Script');
     console.log('═══════════════════════════════════════════');
 
-    await seedCollection('cornerstones', cornerstones);
-    await seedCollection('dailyDos', dailyDos);
-    await seedCollection('dailyDoses', [...week1Doses, ...rotatingDoses]);
-    await seedCollection('surveys', [onboardingSurvey, ...dailyBanners]);
+    // Clear existing data so seed is idempotent
+    await clearAllTables();
+
+    await seedTable('cornerstone', cornerstones);
+    await seedTable('dailyDo', dailyDos);
+    await seedTable('dailyDose', [...week1Doses, ...rotatingDoses]);
+    await seedTable('survey', [onboardingSurvey, ...dailyBanners]);
 
     const appSettings = await buildAppSettings();
-    await seedCollection('appSettings', [appSettings]);
-    await seedCollection('emailTemplates', [emailTemplate]);
+    await seedTable('appSetting', [appSettings]);
+    await seedTable('emailTemplate', [emailTemplate]);
 
     console.log('\n═══════════════════════════════════════════');
-    console.log(`  DONE! ${totalDocs} documents written.`);
+    console.log(`  DONE! ${totalRows} rows written to PostgreSQL.`);
     console.log('═══════════════════════════════════════════\n');
 
     process.exit(0);

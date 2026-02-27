@@ -1,0 +1,123 @@
+# Feeling Fine — Server-side GraphQL queries (executed via Admin SDK)
+# These are NOT client queries — they run with full admin privileges.
+
+# ── User Queries ─────────────────────────────────────────────────────────────
+
+query GetUserByUid($uid: String!) @auth(level: NO_ACCESS) {
+  user(id: $uid) {
+    id email displayName firstName lastName role
+    programStartDate labels fontSizeMultiplier
+    emailOptIn provider photoURL createdAt updatedAt
+  }
+}
+
+query ListUsers($limit: Int = 50) @auth(level: NO_ACCESS) {
+  users(limit: $limit, orderBy: [{ createdAt: DESC }]) {
+    id email displayName role createdAt
+  }
+}
+
+# ── Cornerstone Queries ──────────────────────────────────────────────────────
+
+query ListCornerstones @auth(level: NO_ACCESS) {
+  cornerstones(orderBy: [{ sortOrder: ASC }]) {
+    id name dayNumber icon color description dayOfWeek sortOrder isActive
+  }
+}
+
+# ── Daily Dose Queries ───────────────────────────────────────────────────────
+
+query GetDailyDoseByDay($dayNumber: Int!) @auth(level: NO_ACCESS) {
+  dailyDoses(where: { dayNumber: { eq: $dayNumber }, isActive: { eq: true } }, limit: 1) {
+    id dayNumber category title message bannerText
+    bannerQuestion bannerQuestionType bannerOptions
+    targetLabels adminMessage
+  }
+}
+
+query GetDosesByCategory($category: String!) @auth(level: NO_ACCESS) {
+  dailyDoses(where: { category: { eq: $category }, isActive: { eq: true } }) {
+    id dayNumber category title message targetLabels
+  }
+}
+
+query GetRotatingDoses @auth(level: NO_ACCESS) {
+  dailyDoses(where: { dayNumber: { eq: 0 }, isActive: { eq: true } }) {
+    id dayNumber category title message
+  }
+}
+
+# ── Daily Do Queries ─────────────────────────────────────────────────────────
+
+query GetDosByDayNumber($dayNumber: Int!) @auth(level: NO_ACCESS) {
+  dailyDos(where: { dayNumber: { eq: $dayNumber }, isActive: { eq: true } }, orderBy: [{ sortOrder: ASC }]) {
+    id text category dayNumber sortOrder targetLabels
+  }
+}
+
+query GetDosByCategory($category: String!) @auth(level: NO_ACCESS) {
+  dailyDos(where: { category: { eq: $category }, isActive: { eq: true } }, orderBy: [{ sortOrder: ASC }]) {
+    id text category dayNumber sortOrder targetLabels
+  }
+}
+
+# ── Tracking Queries ─────────────────────────────────────────────────────────
+
+query GetTrackingDay($uid: String!, $dateKey: Date!) @auth(level: NO_ACCESS) {
+  trackingDays(where: { userId: { eq: $uid }, dateKey: { eq: $dateKey } }, limit: 1) {
+    id userId dateKey feelingScore dailyDoseViewed dailyDoseViewedAt
+    surveyCompleted createdAt
+  }
+}
+
+query GetCompletedDos($uid: String!, $dateKey: Date!) @auth(level: NO_ACCESS) {
+  completedDos(where: { userId: { eq: $uid }, dateKey: { eq: $dateKey } }) {
+    id doId category completedAt
+  }
+}
+
+query GetCustomDos($uid: String!, $dateKey: Date!) @auth(level: NO_ACCESS) {
+  customDos(where: { userId: { eq: $uid }, dateKey: { eq: $dateKey } }) {
+    id text category completedAt
+  }
+}
+
+query GetTrackingHistory($uid: String!, $startDate: Date!) @auth(level: NO_ACCESS) {
+  trackingDays(
+    where: { userId: { eq: $uid }, dateKey: { ge: $startDate } }
+    orderBy: [{ dateKey: DESC }]
+  ) {
+    id userId dateKey feelingScore dailyDoseViewed surveyCompleted createdAt
+  }
+}
+
+# ── Survey Queries ───────────────────────────────────────────────────────────
+
+query GetSurvey($surveyId: String!) @auth(level: NO_ACCESS) {
+  survey(id: $surveyId) {
+    id title description type triggerDay isDismissable isActive questions
+  }
+}
+
+query ListSurveysByType($type: String!) @auth(level: NO_ACCESS) {
+  surveys(where: { type: { eq: $type }, isActive: { eq: true } }) {
+    id title type triggerDay isDismissable questions
+  }
+}
+
+# ── App Settings ─────────────────────────────────────────────────────────────
+
+query GetAppSettings @auth(level: NO_ACCESS) {
+  appSetting(id: "default") {
+    id emailSendTime emailSendTimezone programLengthWeeks
+    adminPasscode welcomeMessage maintenanceMode
+  }
+}
+
+# ── Email Templates ──────────────────────────────────────────────────────────
+
+query GetEmailTemplate($templateId: String!) @auth(level: NO_ACCESS) {
+  emailTemplate(id: $templateId) {
+    id name subject htmlBody textBody isActive
+  }
+}

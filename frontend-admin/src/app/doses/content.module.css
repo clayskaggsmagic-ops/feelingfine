@@ -1,0 +1,256 @@
+/* ── Shared Content Manager Styles ────────────────────────────────────────── */
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+}
+
+.title {
+    font-family: var(--admin-font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+/* ── Toast ─────────────────────────────────────────────────────────────────── */
+
+.toast {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: var(--admin-text);
+    color: white;
+    padding: 0.75rem 1.25rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    z-index: 1000;
+    animation: slideIn 0.3s ease;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(40px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* ── Table ─────────────────────────────────────────────────────────────────── */
+
+.tableWrap {
+    background: var(--admin-card);
+    border-radius: var(--admin-radius);
+    border: 1px solid var(--admin-border);
+    overflow: hidden;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.table thead {
+    background: #f8f9fa;
+    border-bottom: 1px solid var(--admin-border);
+}
+
+.table th {
+    text-align: left;
+    padding: 0.85rem 1rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--admin-text-secondary);
+    font-weight: 600;
+}
+
+.table td {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid #f1f3f5;
+    vertical-align: middle;
+}
+
+.table tbody tr:hover {
+    background: #fafbfc;
+}
+
+.dayNum {
+    font-weight: 700;
+    color: var(--admin-primary);
+    min-width: 50px;
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: var(--admin-primary-light);
+    color: var(--admin-primary);
+    text-transform: capitalize;
+}
+
+.statusActive {
+    color: var(--admin-success);
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.statusInactive {
+    color: var(--admin-text-secondary);
+    font-size: 0.85rem;
+}
+
+.emptyRow {
+    text-align: center;
+    color: var(--admin-text-secondary);
+    padding: 2rem !important;
+}
+
+.actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.editBtn,
+.deleteBtn {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.editBtn {
+    background: var(--admin-primary-light);
+    color: var(--admin-primary);
+}
+
+.editBtn:hover {
+    background: var(--admin-primary);
+    color: white;
+}
+
+.deleteBtn {
+    background: rgba(231, 76, 60, 0.08);
+    color: var(--admin-error);
+}
+
+.deleteBtn:hover {
+    background: var(--admin-error);
+    color: white;
+}
+
+/* ── Modal ─────────────────────────────────────────────────────────────────── */
+
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 500;
+    padding: 1rem;
+}
+
+.modalCard {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 700px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.modalTitle {
+    font-family: var(--admin-font-display);
+    font-size: 1.35rem;
+    margin-bottom: 1.5rem;
+    font-weight: 700;
+}
+
+.formGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.field span {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--admin-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.field input,
+.field select,
+.field textarea {
+    font-size: 0.95rem;
+}
+
+.field textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+.fieldFull {
+    grid-column: 1 / -1;
+}
+
+.modalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--admin-border);
+}
+
+/* ── Bulk Import ──────────────────────────────────────────────────────────── */
+
+.bulkSection {
+    margin-top: 1.5rem;
+}
+
+.bulkTextarea {
+    min-height: 120px;
+    font-family: 'Menlo', monospace;
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+}
+
+/* ── Difficulty badges ────────────────────────────────────────────────────── */
+
+.diffEasy {
+    background: rgba(39, 174, 96, 0.1);
+    color: var(--admin-success);
+}
+
+.diffMedium {
+    background: rgba(243, 156, 18, 0.1);
+    color: var(--admin-warning);
+}
+
+.diffHard {
+    background: rgba(231, 76, 60, 0.1);
+    color: var(--admin-error);
+}

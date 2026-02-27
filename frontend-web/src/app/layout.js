@@ -1,4 +1,6 @@
 import './globals.css';
+import Providers from './providers';
+import MobileNav from '@/components/MobileNav';
 
 export const metadata = {
   title: 'Feeling Fine — Your Daily Wellness Journey',
@@ -8,7 +10,13 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <Providers>
+          {children}
+          <MobileNav />
+        </Providers>
+      </body>
     </html>
   );
 }
+

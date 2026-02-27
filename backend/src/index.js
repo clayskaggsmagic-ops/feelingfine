@@ -37,8 +37,8 @@ app.use(cors({
 // Body parsing
 app.use(express.json({ limit: '1mb' }));
 
-// Request logging
-app.use(morgan('dev'));
+// Request logging — combined format in production for full audit trail
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 // ---------------------------------------------------------------------------
 // Routes
@@ -53,19 +53,29 @@ app.get('/health', (_req, res) => {
     });
 });
 
+// Global rate limiter + body sanitizer
+import { globalLimiter, authLimiter, apiLimiter, aiLimiter, trackingLimiter } from './middleware/rateLimit.js';
+import { sanitizeBody } from './middleware/validate.js';
+app.use(globalLimiter);
+app.use(sanitizeBody);
+
 // API v1 routes
 import authRoutes from './routes/auth.js';
-app.use('/v1/auth', authRoutes);
+app.use('/v1/auth', authLimiter, authRoutes);
 
-// Future routes (added in subsequent prompts)
 import contentRoutes from './routes/content.js';
 import trackingRoutes from './routes/tracking.js';
-app.use('/v1/content', contentRoutes);
-app.use('/v1/tracking', trackingRoutes);
+app.use('/v1/content', apiLimiter, contentRoutes);
+app.use('/v1/tracking', trackingLimiter, trackingRoutes);
 
-// app.use('/v1/surveys', surveyRoutes);
-// app.use('/v1/ai', aiRoutes);
-// app.use('/v1/admin', adminRoutes);
+import surveyRoutes from './routes/surveys.js';
+app.use('/v1/surveys', apiLimiter, surveyRoutes);
+import aiRoutes from './routes/ai.js';
+app.use('/v1/ai', aiLimiter, aiRoutes);
+import adminRoutes from './routes/admin.js';
+app.use('/v1/admin', apiLimiter, adminRoutes);
+import communityRoutes from './routes/community.js';
+app.use('/v1/community', apiLimiter, communityRoutes);
 
 // ---------------------------------------------------------------------------
 // Error handling

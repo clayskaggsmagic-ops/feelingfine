@@ -53,8 +53,11 @@ app.get('/health', (_req, res) => {
     });
 });
 
-// API v1 routes (to be added in subsequent prompts)
-// app.use('/v1/auth', authRoutes);
+// API v1 routes
+import authRoutes from './routes/auth.js';
+app.use('/v1/auth', authRoutes);
+
+// Future routes (added in subsequent prompts)
 // app.use('/v1/content', contentRoutes);
 // app.use('/v1/tracking', trackingRoutes);
 // app.use('/v1/surveys', surveyRoutes);

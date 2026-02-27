@@ -294,7 +294,7 @@ export async function getPendingSurveys(uid, programDay) {
 
 // App Settings
 export async function getAppSettings() {
-    const data = await query(`query { appSetting(id: "default") { id emailSendTime emailSendTimezone programLengthWeeks adminPasscode welcomeMessage maintenanceMode } }`);
+    const data = await query(`query { appSetting(id: "main") { id emailSendTime emailSendTimezone programLengthWeeks adminPasscode welcomeMessage maintenanceMode } }`);
     return data.appSetting;
 }
 

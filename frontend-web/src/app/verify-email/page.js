@@ -1,49 +1,50 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAuth, sendEmailVerification } from 'firebase/auth';
 import { app } from '@/lib/firebase';
 import styles from './verify.module.css';
 
 export default function VerifyEmailPage() {
-    const [status, setStatus] = useState('waiting'); // waiting | sent | verified | error
     const [error, setError] = useState('');
     const [cooldown, setCooldown] = useState(0);
+    const [sent, setSent] = useState(false);
     const router = useRouter();
     const auth = getAuth(app);
 
-    const verifiedRef = useRef(false);
-
-    // Poll for email verification every 3 seconds
+    // Check verification status: simple poll, redirect via window.location to avoid React issues
     useEffect(() => {
-        if (verifiedRef.current) return; // Already verified, don't poll
+        // If already verified on mount, redirect immediately
+        const user = auth.currentUser;
+        if (user?.emailVerified) {
+            window.location.href = '/onboarding';
+            return;
+        }
+
+        // Also store in sessionStorage so we never oscillate
+        if (sessionStorage.getItem('ff-email-verified') === 'true') {
+            window.location.href = '/onboarding';
+            return;
+        }
 
         const interval = setInterval(async () => {
-            if (verifiedRef.current) {
-                clearInterval(interval);
-                return;
-            }
-
-            const user = auth.currentUser;
-            if (!user) return;
-
+            const u = auth.currentUser;
+            if (!u) return;
             try {
-                await user.reload();
-            } catch {
-                return; // Reload failed, try again next interval
-            }
-
-            if (user.emailVerified && !verifiedRef.current) {
-                verifiedRef.current = true; // Lock — never go back
-                setStatus('verified');
-                clearInterval(interval);
-                setTimeout(() => router.push('/onboarding'), 1500);
+                await u.reload();
+                if (u.emailVerified) {
+                    clearInterval(interval);
+                    sessionStorage.setItem('ff-email-verified', 'true');
+                    window.location.href = '/onboarding';
+                }
+            } catch (e) {
+                // ignore reload errors, try again next tick
             }
         }, 3000);
 
         return () => clearInterval(interval);
-    }, [auth, router]);
+    }, []); // empty deps — run once on mount, never re-create
 
     // Cooldown timer for resend
     useEffect(() => {
@@ -58,14 +59,12 @@ export default function VerifyEmailPage() {
             setError('No user found. Please sign up again.');
             return;
         }
-
         try {
             await sendEmailVerification(user);
-            setStatus('sent');
-            setCooldown(60); // 60 second cooldown between resends
+            setSent(true);
+            setCooldown(60);
             setError('');
         } catch (err) {
-            console.error('[verify-email] Resend error:', err);
             if (err.code === 'auth/too-many-requests') {
                 setError('Too many attempts. Please wait a few minutes.');
             } else {
@@ -73,20 +72,6 @@ export default function VerifyEmailPage() {
             }
         }
     }, [auth]);
-
-    if (status === 'verified') {
-        return (
-            <main className={styles.page}>
-                <div className={styles.container}>
-                    <div className={`card ${styles.card}`}>
-                        <div className={styles.icon}>&#10003;</div>
-                        <h1 className={styles.title}>Email Verified</h1>
-                        <p className={styles.subtitle}>Taking you to onboarding...</p>
-                    </div>
-                </div>
-            </main>
-        );
-    }
 
     return (
         <main className={styles.page}>
@@ -113,7 +98,7 @@ export default function VerifyEmailPage() {
                         <div className={styles.error} role="alert">{error}</div>
                     )}
 
-                    {status === 'sent' && (
+                    {sent && (
                         <div className={styles.success}>Verification email resent!</div>
                     )}
 

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { getDateKey, calculateProgramDay, getNow } from '../services/programService.js';
 import {
+    getUserByUid,
     getTrackingDay,
     upsertTrackingDay,
     getTrackingHistory,
@@ -17,6 +18,14 @@ const router = Router();
 // ─────────────────────────────────────────────────────────────────────────────
 async function getOrCreateTrackingDoc(uid) {
     const dateKey = getDateKey();
+
+    // Verify user profile exists to prevent FK constraint violation
+    const user = await getUserByUid(uid);
+    if (!user) {
+        const err = new Error('User profile not found — cannot create tracking record');
+        err.status = 404;
+        throw err;
+    }
 
     let tracking = await getTrackingDay(uid, dateKey);
 

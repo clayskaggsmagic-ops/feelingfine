@@ -292,19 +292,19 @@ router.get('/me/export', requireAuth, async (req, res, next) => {
         // Fetch all user data in parallel
         const [profile, trackingDays, completedDos, customDos, surveyResponses] = await Promise.all([
             getUserByUid(uid),
-            query(`query($uid: String!) { trackingDays(where: { userId: { eq: $uid } }, orderBy: [{ date: DESC }]) { id date feelingScore notes createdAt } }`, { uid }).catch(() => ({ data: { trackingDays: [] } })),
-            query(`query($uid: String!) { completedDos(where: { userId: { eq: $uid } }) { id doId category completedAt } }`, { uid }).catch(() => ({ data: { completedDos: [] } })),
-            query(`query($uid: String!) { customDos(where: { userId: { eq: $uid } }) { id text category createdAt } }`, { uid }).catch(() => ({ data: { customDos: [] } })),
-            query(`query($uid: String!) { surveyResponses(where: { userId: { eq: $uid } }) { id surveyId answers completedAt } }`, { uid }).catch(() => ({ data: { surveyResponses: [] } })),
+            query(`query($uid: String!) { trackingDays(where: { userId: { eq: $uid } }, orderBy: [{ dateKey: DESC }]) { id dateKey feelingScore createdAt } }`, { uid }).catch(() => ({ trackingDays: [] })),
+            query(`query($uid: String!) { completedDos(where: { userId: { eq: $uid } }) { id doId category completedAt } }`, { uid }).catch(() => ({ completedDos: [] })),
+            query(`query($uid: String!) { customDos(where: { userId: { eq: $uid } }) { id text category completedAt } }`, { uid }).catch(() => ({ customDos: [] })),
+            query(`query($uid: String!) { surveyResponses(where: { userId: { eq: $uid } }) { id surveyId answers submittedAt } }`, { uid }).catch(() => ({ surveyResponses: [] })),
         ]);
 
         const exportData = {
             exportedAt: new Date().toISOString(),
             profile: profile || {},
-            trackingDays: trackingDays?.data?.trackingDays || [],
-            completedDos: completedDos?.data?.completedDos || [],
-            customDos: customDos?.data?.customDos || [],
-            surveyResponses: surveyResponses?.data?.surveyResponses || [],
+            trackingDays: trackingDays?.trackingDays || [],
+            completedDos: completedDos?.completedDos || [],
+            customDos: customDos?.customDos || [],
+            surveyResponses: surveyResponses?.surveyResponses || [],
         };
 
         res.setHeader('Content-Disposition', `attachment; filename="feelingfine-export-${uid}.json"`);

@@ -79,8 +79,8 @@ router.get('/analytics', requireAuth, requireAdmin, async (req, res, next) => {
 router.get('/doses', requireAuth, requireAdmin, async (req, res, next) => {
     try {
         const data = await query(`query { dailyDoses(orderBy: [{ dayNumber: ASC }]) {
-            id dayNumber title category message educationalParagraph bannerQuestion
-            emailSubject emailMessage isActive
+            id dayNumber title category message bannerText bannerQuestion
+            bannerQuestionType bannerOptions isActive targetLabels adminMessage
         }}`);
         res.json({ doses: data.dailyDoses || [] });
     } catch (err) { next(err); }
@@ -122,7 +122,7 @@ router.delete('/doses/:id', requireAuth, requireAdmin, async (req, res, next) =>
 router.get('/dos', requireAuth, requireAdmin, async (req, res, next) => {
     try {
         const data = await query(`query { dailyDos(orderBy: [{ dayNumber: ASC }]) {
-            id dayNumber category taskText difficulty isActive
+            id dayNumber category text sortOrder isActive targetLabels
         }}`);
         res.json({ dos: data.dailyDos || [] });
     } catch (err) { next(err); }
@@ -179,7 +179,7 @@ router.delete('/dos/:id', requireAuth, requireAdmin, async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────────────
 router.get('/surveys', requireAuth, requireAdmin, async (req, res, next) => {
     try {
-        const data = await query(`query { surveys { id surveyId title triggerType triggerDay isActive questions }}`);
+        const data = await query(`query { surveys { id title description type triggerDay isDismissable isActive questions }}`);
         res.json({ surveys: data.surveys || [] });
     } catch (err) { next(err); }
 });
@@ -213,8 +213,7 @@ router.get('/users', requireAuth, requireAdmin, async (req, res, next) => {
         const page = parseInt(req.query.page) || 1;
         const limit = 25;
         const data = await query(`query { users {
-            id uid displayName email role programStartDate programLength
-            onboardingSurveyCompleted createdAt
+            id displayName email role programStartDate createdAt
         }}`);
         let users = data.users || [];
         if (search) {
@@ -231,8 +230,8 @@ router.get('/users/:uid', requireAuth, requireAdmin, async (req, res, next) => {
     try {
         const userData = await query(
             `query($uid: String!) { user(id: $uid) {
-                id uid displayName email role programStartDate programLength
-                onboardingSurveyCompleted createdAt userLabels
+                id displayName email role programStartDate labels
+                fontSizeMultiplier emailOptIn createdAt
             }}`,
             { uid: req.params.uid }
         );
@@ -278,11 +277,10 @@ router.patch('/users/:uid', requireAuth, requireAdmin, async (req, res, next) =>
 router.get('/users-export', requireAuth, requireAdmin, async (req, res, next) => {
     try {
         const data = await query(`query { users {
-            uid displayName email role programStartDate programLength
-            onboardingSurveyCompleted createdAt
+            id displayName email role programStartDate createdAt
         }}`);
         const users = data.users || [];
-        const headers = ['uid', 'displayName', 'email', 'role', 'programStartDate', 'programLength', 'onboardingSurveyCompleted', 'createdAt'];
+        const headers = ['id', 'displayName', 'email', 'role', 'programStartDate', 'createdAt'];
         const csv = [headers.join(','), ...users.map(u => headers.map(h => `"${(u[h] ?? '').toString().replace(/"/g, '""')}"`).join(','))].join('\n');
         res.setHeader('Content-Type', 'text/csv');
         res.setHeader('Content-Disposition', 'attachment; filename=users.csv');
@@ -296,8 +294,8 @@ router.get('/users-export', requireAuth, requireAdmin, async (req, res, next) =>
 router.get('/settings', requireAuth, requireAdmin, async (req, res, next) => {
     try {
         const data = await query(`query { appSetting(id: "main") {
-            id emailSendTime timezone programLength welcomeMessage
-            maintenanceMode weeklyChallenge weeklyChallengeCornerstoneId
+            id emailSendTime emailSendTimezone programLengthWeeks welcomeMessage
+            maintenanceMode weeklyChallenge weeklyChallengeCornerstoneId adminPasscode
         }}`);
         res.json({ settings: data.appSetting || {} });
     } catch (err) { next(err); }
@@ -324,7 +322,7 @@ router.patch('/settings', requireAuth, requireAdmin, async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────────────
 router.get('/email-templates', requireAuth, requireAdmin, async (req, res, next) => {
     try {
-        const data = await query(`query { emailTemplates { id templateId subject htmlContent plainTextContent }}`);
+        const data = await query(`query { emailTemplates { id name subject htmlBody textBody isActive }}`);
         res.json({ templates: data.emailTemplates || [] });
     } catch (err) { next(err); }
 });

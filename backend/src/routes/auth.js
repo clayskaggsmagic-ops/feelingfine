@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { auth } from '../services/firebase.js';
 import { getUserByUid, upsertUser, updateUser, deleteUser } from '../services/dataConnect.js';
 import { requireAuth } from '../middleware/auth.js';
+import { sendDoseEmailToUser } from '../jobs/dailyEmailJob.js';
 
 const router = Router();
 
@@ -67,6 +68,13 @@ router.post('/signup', async (req, res, next) => {
 
         await upsertUser(profile);
         console.log(`[auth/signup] Profile created for uid: ${decoded.uid}, role: ${profile.role}`);
+
+        // Send Day 1 dose email immediately (non-blocking)
+        if (profile.emailOptIn) {
+            sendDoseEmailToUser(profile).catch(err => {
+                console.error('[auth/signup] Welcome dose email failed:', err.message);
+            });
+        }
 
         res.status(201).json({ user: profile, created: true });
     } catch (err) {
@@ -209,7 +217,7 @@ router.patch('/me', requireAuth, async (req, res, next) => {
         const allowedFields = [
             'displayName', 'firstName', 'lastName', 'photoURL',
             'emailOptIn', 'dailyReminder', 'weeklyReport', 'challengeAlerts',
-            'fontSizeMultiplier',
+            'fontSizeMultiplier', 'timezone',
             'programStartDate', 'labels',
             'walkthroughCompleted',
         ];

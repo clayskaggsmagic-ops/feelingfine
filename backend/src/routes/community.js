@@ -177,31 +177,22 @@ router.post('/invite', requireAuth, async (req, res, next) => {
             return res.status(400).json({ error: 'groupId required for group invites' });
         }
 
-        // Check for existing unexpired invite of same type by this user
-        const existing = await query(
-            `query($uid: String!, $type: String!) { invitations(where: { createdById: { eq: $uid }, type: { eq: $type } }) { id code expiresAt groupId } }`,
-            { uid: req.user.uid, type }
-        );
-        const validExisting = (existing.invitations || []).find(inv => {
-            if (inv.expiresAt && new Date(inv.expiresAt) < new Date()) return false;
-            if (type === 'group' && inv.groupId !== groupId) return false;
-            return true;
-        });
-        if (validExisting) {
-            console.log(`[invite] Returning existing ${type} invite: ${validExisting.code} for ${req.user.uid}`);
-            return res.status(200).json({ code: validExisting.code, type });
-        }
-
         const code = generateCode();
         const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 days
 
-        const data = { code, type, createdById: req.user.uid, expiresAt };
-        if (groupId) data.groupId = groupId;
+        // Use individual variables — Data Connect doesn't support complex _Data types via admin SDK
+        const gql = groupId
+            ? `mutation($code: String!, $type: String!, $createdById: String!, $expiresAt: Timestamp!, $groupId: UUID!) {
+                 invitation_insert(data: { code: $code, type: $type, createdById: $createdById, expiresAt: $expiresAt, groupId: $groupId }) { id }
+               }`
+            : `mutation($code: String!, $type: String!, $createdById: String!, $expiresAt: Timestamp!) {
+                 invitation_insert(data: { code: $code, type: $type, createdById: $createdById, expiresAt: $expiresAt }) { id }
+               }`;
 
-        await mutate(
-            `mutation($data: Invitation_Data!) { invitation_insert(data: $data) { id } }`,
-            { data }
-        );
+        const vars = { code, type, createdById: req.user.uid, expiresAt };
+        if (groupId) vars.groupId = groupId;
+
+        await mutate(gql, vars);
 
         console.log(`[invite] Created ${type} invite: ${code} by ${req.user.uid}`);
         res.status(201).json({ code, type });

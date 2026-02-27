@@ -92,22 +92,38 @@ export async function deleteUser(uid) {
 }
 
 export async function updateUser(uid, updates) {
-    return mutate(`mutation($id: String!, $displayName: String, $firstName: String, $lastName: String, $fontSizeMultiplier: Float, $emailOptIn: Boolean, $dailyReminder: Boolean, $weeklyReport: Boolean, $challengeAlerts: Boolean, $labels: [String!], $programStartDate: Date, $timezone: String) {
+    // Build mutation dynamically to only include fields being updated.
+    // This prevents null-overwriting other fields when doing partial updates.
+    const FIELD_TYPES = {
+        displayName: 'String',
+        firstName: 'String',
+        lastName: 'String',
+        fontSizeMultiplier: 'Float',
+        emailOptIn: 'Boolean',
+        dailyReminder: 'Boolean',
+        weeklyReport: 'Boolean',
+        challengeAlerts: 'Boolean',
+        labels: '[String!]',
+        programStartDate: 'Date',
+        timezone: 'String',
+        walkthroughCompleted: 'Boolean',
+        photoURL: 'String',
+    };
+
+    const fields = Object.keys(updates).filter(k => k in FIELD_TYPES);
+    if (fields.length === 0) return;
+
+    const varDefs = fields.map(f => `$${f}: ${FIELD_TYPES[f]}`).join(', ');
+    const dataFields = fields.map(f => `${f}: $${f}`).join('\n        ');
+
+    const gql = `mutation($id: String!, ${varDefs}) {
       user_update(id: $id, data: {
-        displayName: $displayName
-        firstName: $firstName
-        lastName: $lastName
-        fontSizeMultiplier: $fontSizeMultiplier
-        emailOptIn: $emailOptIn
-        dailyReminder: $dailyReminder
-        weeklyReport: $weeklyReport
-        challengeAlerts: $challengeAlerts
-        labels: $labels
-        programStartDate: $programStartDate
-        timezone: $timezone
+        ${dataFields}
         updatedAt_expr: "request.time"
       })
-    }`, { id: uid, ...updates });
+    }`;
+
+    return mutate(gql, { id: uid, ...updates });
 }
 
 // Cornerstones

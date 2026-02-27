@@ -1,5 +1,6 @@
 import './globals.css';
 import Providers from './providers';
+import AppHeader from '@/components/AppHeader';
 import MobileNav from '@/components/MobileNav';
 import WalkthroughWrapper from '@/components/WalkthroughWrapper';
 
@@ -13,6 +14,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body>
         <Providers>
+          <AppHeader />
           {children}
           <MobileNav />
           <WalkthroughWrapper />

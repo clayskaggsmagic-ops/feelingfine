@@ -117,6 +117,43 @@ export async function runDailyEmail({ skipTimeCheck = false } = {}) {
 }
 
 /**
+ * Send the daily dose email to a SINGLE user (used by signup for Day 1 immediate email).
+ * @param {object} user - User object with { email, displayName, programStartDate }
+ */
+export async function sendDoseEmailToUser(user) {
+    try {
+        const template = await getEmailTemplate('daily');
+        if (!template || !template.isActive) {
+            console.warn('[dailyEmail] No active "daily" template — skipping welcome dose email');
+            return { sent: false, reason: 'No active template' };
+        }
+
+        const programDay = 1; // Always Day 1 on signup
+
+        const email = {
+            to: user.email,
+            subject: (template.subject || 'Your Daily Dose')
+                .replace(/\{\{name\}\}/g, user.displayName || 'Friend')
+                .replace(/\{\{day\}\}/g, programDay),
+            html: (template.htmlBody || '')
+                .replace(/\{\{name\}\}/g, user.displayName || 'Friend')
+                .replace(/\{\{day\}\}/g, programDay),
+            text: (template.textBody || '')
+                .replace(/\{\{name\}\}/g, user.displayName || 'Friend')
+                .replace(/\{\{day\}\}/g, programDay),
+        };
+
+        const { sendEmail } = await import('../services/emailService.js');
+        await sendEmail(email);
+        console.log(`[dailyEmail] Welcome dose email sent to ${user.email} (Day 1)`);
+        return { sent: true };
+    } catch (err) {
+        console.error(`[dailyEmail] Failed to send welcome dose to ${user.email}:`, err.message);
+        return { sent: false, error: err.message };
+    }
+}
+
+/**
  * Initialize the cron job (runs every hour).
  */
 export async function initDailyEmailJob() {

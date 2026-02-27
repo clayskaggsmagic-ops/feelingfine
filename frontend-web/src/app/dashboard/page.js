@@ -70,7 +70,7 @@ export default function DashboardPage() {
     const [doseRevealed, setDoseRevealed] = useState(false);
     const [feelingScore, setFeelingScore] = useState(null);
     const [feelingSubmitted, setFeelingSubmitted] = useState(false);
-    const [menuOpen, setMenuOpen] = useState(false);
+
     const [bannerVisible, setBannerVisible] = useState(false);
     const [bannerDismissed, setBannerDismissed] = useState(false);
     const [loadingDose, setLoadingDose] = useState(true);
@@ -258,27 +258,7 @@ export default function DashboardPage() {
             )}
 
             <main className={styles.page}>
-                {/* ─── Nav Header ─── */}
-                <header className={styles.topBar}>
-                    <Link href="/dashboard" className={styles.logoLink}>
-                        <span className={styles.logoMark}>FF</span>
-                    </Link>
-                    <button className={styles.hamburger} onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle menu">
-                        <span className={`${styles.hamburgerLine} ${menuOpen ? styles.open : ''}`} />
-                        <span className={`${styles.hamburgerLine} ${menuOpen ? styles.open : ''}`} />
-                        <span className={`${styles.hamburgerLine} ${menuOpen ? styles.open : ''}`} />
-                    </button>
-                </header>
 
-                {menuOpen && (
-                    <nav className={styles.menu}>
-                        <Link href="/dashboard" className={styles.menuItem} onClick={() => setMenuOpen(false)}>My Wellness</Link>
-                        <Link href="/community" className={styles.menuItem} onClick={() => setMenuOpen(false)} data-tour="community-link">Community</Link>
-                        <Link href="/report" className={styles.menuItem} onClick={() => setMenuOpen(false)} data-tour="report-link">My Report</Link>
-                        <Link href="/settings" className={styles.menuItem} onClick={() => setMenuOpen(false)} data-tour="settings-link">Settings</Link>
-                        <button className={styles.menuLogout} onClick={() => { logout(); setMenuOpen(false); }}>Sign Out</button>
-                    </nav>
-                )}
 
                 <div className="container">
                     {/* ─── Greeting ─── */}

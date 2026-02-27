@@ -91,11 +91,14 @@ export function validateSurveyAnswers(req, res, next) {
 
 /**
  * Generic body sanitizer — trims and strips HTML from all string fields.
+ * Skips auth tokens which are long opaque strings that must not be modified.
  */
+const SKIP_SANITIZE = new Set(['idToken', 'token', 'refreshToken', 'accessToken']);
+
 export function sanitizeBody(req, res, next) {
     if (req.body && typeof req.body === 'object') {
         for (const [key, value] of Object.entries(req.body)) {
-            if (typeof value === 'string') {
+            if (typeof value === 'string' && !SKIP_SANITIZE.has(key)) {
                 req.body[key] = sanitizeString(value);
             }
         }

@@ -158,11 +158,13 @@ export default function WalkthroughOverlay({ onComplete }) {
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
     return (
-        <div className={styles.overlay}>
-            {/* Dark backdrop — z-index 10000 */}
-            <div className={styles.backdrop} />
+        <>
+            <div className={styles.overlay}>
+                {/* Dark backdrop — z-index 10000 */}
+                <div className={styles.backdrop} />
+            </div>
 
-            {/* Tooltip card — z-index 10002, always at bottom center */}
+            {/* Tooltip card — OUTSIDE overlay to escape its stacking context */}
             <div className={`${styles.card} ${ready ? styles.cardVisible : ''}`} key={step}>
                 {/* Screenshot preview for Community/Report steps */}
                 {current.screenshot && (
@@ -200,6 +202,6 @@ export default function WalkthroughOverlay({ onComplete }) {
                     </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 }

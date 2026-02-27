@@ -36,7 +36,7 @@ gcloud run deploy feelingfine-api \
   --region us-central1 \
   --platform managed \
   --allow-unauthenticated \
-  --set-env-vars "NODE_ENV=production,FIREBASE_PROJECT_ID=feelingfine-b4106,CORS_ALLOWED_ORIGINS=https://feelingfine.org;https://www.feelingfine.org;https://feelingfine-web.web.app;https://admin.feelingfine.org;https://feelingfine-admin.web.app,RESEND_API_KEY=re_ULaTvF1D_79SjjRKKXYmDSrToDNwpTbFv,FROM_EMAIL=Art <art@feelingfine.org>,GEMINI_API_KEY=AIzaSyCCfWXXcStIocOaXvx6B_3rtdJMMfJE0qY" && \
+  --set-env-vars "NODE_ENV=production,FIREBASE_PROJECT_ID=feelingfine-b4106,CORS_ALLOWED_ORIGINS=https://feelingfine.org;https://www.feelingfine.org;https://feelingfine-web.web.app;https://admin.feelingfine.org;https://feelingfine-admin.web.app,RESEND_API_KEY=YOUR_RESEND_API_KEY,FROM_EMAIL=Art <art@feelingfine.org>,GEMINI_API_KEY=YOUR_GEMINI_API_KEY" && \
 cd ..
 
 # 2. Frontend-web → Firebase Hosting
@@ -70,7 +70,7 @@ gcloud run deploy feelingfine-api \
   --region us-central1 \
   --platform managed \
   --allow-unauthenticated \
-  --set-env-vars "NODE_ENV=production,FIREBASE_PROJECT_ID=feelingfine-b4106,CORS_ALLOWED_ORIGINS=https://feelingfine.org;https://www.feelingfine.org;https://feelingfine-web.web.app;https://admin.feelingfine.org;https://feelingfine-admin.web.app,RESEND_API_KEY=re_ULaTvF1D_79SjjRKKXYmDSrToDNwpTbFv,FROM_EMAIL=Art <art@feelingfine.org>,GEMINI_API_KEY=AIzaSyCCfWXXcStIocOaXvx6B_3rtdJMMfJE0qY"
+  --set-env-vars "NODE_ENV=production,FIREBASE_PROJECT_ID=feelingfine-b4106,CORS_ALLOWED_ORIGINS=https://feelingfine.org;https://www.feelingfine.org;https://feelingfine-web.web.app;https://admin.feelingfine.org;https://feelingfine-admin.web.app,RESEND_API_KEY=YOUR_RESEND_API_KEY,FROM_EMAIL=Art <art@feelingfine.org>,GEMINI_API_KEY=YOUR_GEMINI_API_KEY"
 ```
 
 ### Deploy just the schema (Data Connect):
@@ -124,9 +124,9 @@ cd /Users/clayskaggs/Developer/feelingfine && firebase deploy --only dataconnect
 | `NODE_ENV`            | `development`                                |
 | `FIREBASE_PROJECT_ID` | `feelingfine-b4106`                         |
 | `CORS_ALLOWED_ORIGINS`| `http://localhost:3000,http://localhost:3002` |
-| `RESEND_API_KEY`      | `re_ULaTvF1D_...`                           |
+| `RESEND_API_KEY`      | *(in .env / Cloud Run — never commit)* |
 | `FROM_EMAIL`          | `Art <art@feelingfine.org>`                  |
-| `GEMINI_API_KEY`      | `AIzaSyCCf...`                               |
+| `GEMINI_API_KEY`      | *(in .env / Cloud Run — never commit)* |
 
 ### Backend — Production (Cloud Run `--set-env-vars`)
 | Variable              | Value                                        |
@@ -134,9 +134,9 @@ cd /Users/clayskaggs/Developer/feelingfine && firebase deploy --only dataconnect
 | `NODE_ENV`            | `production`                                 |
 | `FIREBASE_PROJECT_ID` | `feelingfine-b4106`                         |
 | `CORS_ALLOWED_ORIGINS`| `https://feelingfine.org;https://www.feelingfine.org;https://feelingfine-web.web.app;https://admin.feelingfine.org;https://feelingfine-admin.web.app` |
-| `RESEND_API_KEY`      | `re_ULaTvF1D_...`                           |
+| `RESEND_API_KEY`      | *(in .env / Cloud Run — never commit)* |
 | `FROM_EMAIL`          | `Art <art@feelingfine.org>`                  |
-| `GEMINI_API_KEY`      | `AIzaSyCCf...`                               |
+| `GEMINI_API_KEY`      | *(in .env / Cloud Run — never commit)* |
 
 > **Note**: Cloud Run auto-sets `PORT` (usually 8080). Don't hardcode it.
 
@@ -199,6 +199,46 @@ Same values as frontend-web (both call the same API).
 **Cause**: Key is missing or invalid in Cloud Run env vars. The local `.env` key is not used in production.
 **Fix**: Ensure `GEMINI_API_KEY` is included in the `--set-env-vars` when deploying backend. Verify the key at [Google AI Studio](https://aistudio.google.com/apikey).
 
+### 11. ⚠️ API keys leaked to GitHub (Feb 2025 incident)
+**What happened**: Real `RESEND_API_KEY` and `GEMINI_API_KEY` values were pasted directly into `DEPLOY.md` and `DEPLOYMENT_NOTES.md` as "copy-paste convenience." These tracked files were pushed to the public GitHub repo, triggering a Google security alert.
+**Root cause**: AI assistant (me) put actual secret values into markdown files instead of placeholder text. These files are tracked by git and pushed to a public repository.
+**Rule going forward**:
+- **NEVER** put real API keys, tokens, or secrets in any tracked file (`.md`, `.js`, etc.)
+- Real keys go in **only two places**: `backend/.env` (gitignored) and Cloud Run `--set-env-vars` (typed directly in terminal)
+- Tracked docs must use placeholders like `YOUR_RESEND_API_KEY` or `YOUR_GEMINI_API_KEY`
+- If a key is ever exposed: **rotate immediately** (revoke old, create new), then scrub from files and push
+
+---
+
+## How to Update API Keys (safely)
+
+### Step 1: Generate the new key
+- **Resend**: [resend.com/api-keys](https://resend.com/api-keys) → Create new key → revoke old one
+- **Gemini**: [aistudio.google.com/apikey](https://aistudio.google.com/apikey) → Create new key → delete old one
+
+### Step 2: Update local dev
+Edit `backend/.env` (this file is gitignored — safe):
+```
+RESEND_API_KEY=your_new_resend_key
+GEMINI_API_KEY=your_new_gemini_key
+```
+
+### Step 3: Update Cloud Run production
+**Option A — Update env vars without redeploying code** (fast, no build):
+```bash
+gcloud run services update feelingfine-api --region us-central1 \
+  --update-env-vars "RESEND_API_KEY=your_new_key,GEMINI_API_KEY=your_new_key"
+```
+
+**Option B — Full redeploy with new keys** (if you also have code changes):
+Paste new keys directly into the `--set-env-vars` in your terminal. Do NOT copy from a tracked file.
+
+### Step 4: Verify
+```bash
+# Check Cloud Run env vars are set (won't show values, just names)
+gcloud run services describe feelingfine-api --region us-central1 --format="yaml(spec.template.spec.containers[0].env)"
+```
+
 ---
 
 ## When to Deploy What
@@ -212,7 +252,8 @@ Same values as frontend-web (both call the same API).
 | Mutations/queries (`dataconnect/connector/`) | `firebase deploy --only dataconnect` |
 | `.env.production` (frontend) | Frontend rebuild + redeploy |
 | Backend `.env` (local only) | Just restart backend locally |
-| Backend env vars (Cloud Run) | Backend redeploy with `--set-env-vars` |
+| Backend env vars (Cloud Run) | `--update-env-vars` (no code deploy) or full redeploy |
+| API keys rotated | Update `backend/.env` + `gcloud run services update --update-env-vars` |
 
 ---
 

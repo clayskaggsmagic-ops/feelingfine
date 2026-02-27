@@ -160,7 +160,10 @@ function FriendsTab({ uid }) {
                 await navigator.clipboard.writeText(url);
                 showToast('Invite link copied!');
             }
-        } catch (err) { showToast('Error creating invite'); }
+        } catch (err) {
+            console.error('[community] inviteFriend error:', err);
+            showToast('Error: ' + (err.message || 'Could not create invite'));
+        }
     }
 
     async function inviteToGroup(groupId) {

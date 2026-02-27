@@ -4,6 +4,7 @@
     min-height: 100vh;
     background: var(--bg-warm);
     padding: 2rem;
+    padding-top: 72px;
     max-width: 800px;
     margin: 0 auto;
 }

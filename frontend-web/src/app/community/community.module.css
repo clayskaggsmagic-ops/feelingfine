@@ -4,6 +4,7 @@
     min-height: 100vh;
     background: var(--bg-warm);
     padding: 2rem;
+    padding-top: 72px;
     max-width: 900px;
     margin: 0 auto;
 }
@@ -402,12 +403,17 @@
     background: rgba(56, 178, 172, 0.12);
     transform: translateY(-1px);
 }
+
 /* ── Clickable friend/group rows ───────────────────────────────────────── */
 .friendRowClickable {
     cursor: pointer;
     transition: background 0.15s, transform 0.1s;
 }
-.friendRowClickable:hover { background: #f0f9ff; transform: translateX(2px); }
+
+.friendRowClickable:hover {
+    background: #f0f9ff;
+    transform: translateX(2px);
+}
 
 .chatHint {
     font-size: 0.8rem;
@@ -418,4 +424,7 @@
     align-items: center;
     gap: 0.2rem;
 }
-.friendRowClickable:hover .chatHint { opacity: 1; }
+
+.friendRowClickable:hover .chatHint {
+    opacity: 1;
+}

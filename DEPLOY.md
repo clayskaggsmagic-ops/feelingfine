@@ -45,7 +45,7 @@ gcloud run deploy feelingfine-api \
   --region us-central1 \
   --platform managed \
   --allow-unauthenticated \
-  --set-env-vars "NODE_ENV=production,FIREBASE_PROJECT_ID=feelingfine-b4106,CORS_ALLOWED_ORIGINS=https://feelingfine.org;https://www.feelingfine.org;https://feelingfine-web.web.app;https://admin.feelingfine.org;https://feelingfine-admin.web.app,RESEND_API_KEY=re_ULaTvF1D_79SjjRKKXYmDSrToDNwpTbFv,FROM_EMAIL=Art <art@feelingfine.org>,GEMINI_API_KEY=AIzaSyCCfWXXcStIocOaXvx6B_3rtdJMMfJE0qY"
+  --set-env-vars "NODE_ENV=production,FIREBASE_PROJECT_ID=feelingfine-b4106,CORS_ALLOWED_ORIGINS=https://feelingfine.org;https://www.feelingfine.org;https://feelingfine-web.web.app;https://admin.feelingfine.org;https://feelingfine-admin.web.app,RESEND_API_KEY=YOUR_RESEND_API_KEY,FROM_EMAIL=Art <art@feelingfine.org>,GEMINI_API_KEY=YOUR_GEMINI_API_KEY"
 ```
 
 After deploy, Cloud Run gives you a URL like:

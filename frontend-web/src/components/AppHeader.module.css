@@ -1,0 +1,134 @@
+/* ── Global App Header — visible on all authenticated pages ─── */
+
+.topBar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--ff-space-md);
+    background: var(--ff-glass-bg);
+    backdrop-filter: blur(var(--ff-glass-blur));
+    border-bottom: 1px solid var(--ff-glass-border);
+    z-index: 100;
+}
+
+.logoLink {
+    text-decoration: none;
+}
+
+.logoMark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--ff-radius-sm);
+    background: var(--ff-color-brand-gradient);
+    color: var(--ff-color-text-inverse);
+    font-family: var(--ff-font-serif);
+    font-size: var(--ff-font-size-sm);
+    font-weight: var(--ff-font-weight-bold);
+}
+
+/* ─── Hamburger ─── */
+
+.hamburger {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    background: none;
+    border: none;
+    padding: 8px;
+    min-height: auto;
+    cursor: pointer;
+}
+
+.hamburgerLine {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: var(--ff-color-text-primary);
+    border-radius: 2px;
+    transition: all var(--ff-transition-fast);
+}
+
+.hamburgerLine.open:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+}
+
+.hamburgerLine.open:nth-child(2) {
+    opacity: 0;
+}
+
+.hamburgerLine.open:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+}
+
+/* ─── Slide-out Menu ─── */
+
+.menu {
+    position: fixed;
+    top: 56px;
+    right: 0;
+    width: 260px;
+    background: var(--ff-glass-bg);
+    backdrop-filter: blur(12px);
+    border-left: 1px solid var(--ff-glass-border);
+    border-bottom: 1px solid var(--ff-glass-border);
+    border-radius: 0 0 0 var(--ff-radius-lg);
+    padding: var(--ff-space-md);
+    z-index: 99;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    animation: slideIn 0.25s ease-out;
+    box-shadow: var(--ff-shadow-lg);
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.menuItem {
+    display: block;
+    padding: var(--ff-space-sm) var(--ff-space-md);
+    border-radius: var(--ff-radius-sm);
+    color: var(--ff-color-text-primary);
+    font-weight: var(--ff-font-weight-medium);
+    text-decoration: none;
+    transition: background var(--ff-transition-fast);
+}
+
+.menuItem:hover {
+    background: var(--ff-color-bg-tertiary);
+    color: var(--ff-color-brand-primary);
+}
+
+.menuLogout {
+    margin-top: var(--ff-space-sm);
+    padding: var(--ff-space-sm) var(--ff-space-md);
+    border-radius: var(--ff-radius-sm);
+    background: none;
+    color: var(--ff-color-text-secondary);
+    font-weight: var(--ff-font-weight-medium);
+    text-align: left;
+    border: 1px solid #e2e8f0;
+    min-height: auto;
+}
+
+.menuLogout:hover {
+    border-color: var(--ff-color-error);
+    color: var(--ff-color-error);
+}

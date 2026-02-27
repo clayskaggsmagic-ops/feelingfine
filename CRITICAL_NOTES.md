@@ -68,3 +68,11 @@
 - **NO** emojis in the UI (use proper icons instead)
 - **NO** clutter — white space is luxury
 
+## 8. NEVER PUT API KEYS IN TRACKED FILES
+- **NEVER** paste real API keys, tokens, or secrets into `.md`, `.js`, or ANY file tracked by git
+- This repo is **PUBLIC** — anything committed is visible to the world
+- Real keys go in **only two safe places**:
+  1. `backend/.env` (gitignored — never committed)
+  2. Cloud Run `--set-env-vars` (typed directly in terminal at deploy time)
+- Tracked docs (`DEPLOY.md`, `DEPLOYMENT_NOTES.md`, etc.) must use placeholders: `YOUR_RESEND_API_KEY`, `YOUR_GEMINI_API_KEY`
+- **Incident**: On Feb 27, 2025, real Resend and Gemini API keys were pasted into `DEPLOY.md` and `DEPLOYMENT_NOTES.md`, pushed to GitHub, and flagged by Google security. Both keys had to be rotated immediately.

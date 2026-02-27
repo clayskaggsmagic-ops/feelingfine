@@ -18,6 +18,7 @@
   - Read the latest documentation
   - Check for breaking changes
   - YOU SHOULD HAVE THE LATEST VERSIONS OF ALL DEPENDENCIES
+- Search online for documentation also to make sure you are using best/new way
 
 ## 2. SINGLE SOURCE OF TRUTH
 - ONE backend handles ALL business logic

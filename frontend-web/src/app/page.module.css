@@ -1,0 +1,79 @@
+.main {
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--ff-space-lg);
+}
+
+.hero {
+    text-align: center;
+    max-width: 600px;
+}
+
+.title {
+    font-size: var(--ff-font-size-3xl);
+    background: var(--ff-color-brand-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: var(--ff-space-sm);
+}
+
+.subtitle {
+    font-size: var(--ff-font-size-lg);
+    color: var(--ff-color-text-secondary);
+    margin-bottom: var(--ff-space-xl);
+    line-height: var(--ff-line-height-relaxed);
+}
+
+.actions {
+    display: flex;
+    gap: var(--ff-space-sm);
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btnPrimary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ff-color-brand-gradient);
+    color: var(--ff-color-text-inverse);
+    font-size: var(--ff-font-size-sm);
+    font-weight: var(--ff-font-weight-semibold);
+    padding: var(--ff-space-sm) var(--ff-space-lg);
+    border-radius: var(--ff-radius-md);
+    min-height: var(--ff-touch-min);
+    min-width: 160px;
+    box-shadow: var(--ff-shadow-sm);
+    transition: all var(--ff-transition-normal);
+    text-decoration: none;
+}
+
+.btnPrimary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--ff-shadow-md);
+    color: var(--ff-color-text-inverse);
+}
+
+.btnSecondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: var(--ff-color-brand-primary);
+    font-size: var(--ff-font-size-sm);
+    font-weight: var(--ff-font-weight-semibold);
+    padding: var(--ff-space-sm) var(--ff-space-lg);
+    border-radius: var(--ff-radius-md);
+    border: 2px solid var(--ff-color-brand-primary);
+    min-height: var(--ff-touch-min);
+    min-width: 160px;
+    transition: all var(--ff-transition-normal);
+    text-decoration: none;
+}
+
+.btnSecondary:hover {
+    background: var(--ff-color-bg-tertiary);
+}

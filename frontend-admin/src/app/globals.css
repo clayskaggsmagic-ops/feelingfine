@@ -1,0 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --ff-color-bg-primary: #fdfbf7;
+  --ff-color-bg-secondary: #ffffff;
+  --ff-color-bg-tertiary: #f0faf9;
+  --ff-color-text-primary: #2d3748;
+  --ff-color-text-secondary: #718096;
+  --ff-color-text-inverse: #ffffff;
+  --ff-color-brand-primary: #2c7a7b;
+  --ff-color-brand-secondary: #38b2ac;
+  --ff-color-brand-gradient: linear-gradient(135deg, #2c7a7b, #38b2ac);
+  --ff-color-accent-warm: #ed8936;
+  --ff-color-success: #48bb78;
+  --ff-color-error: #f56565;
+  --ff-color-warning: #ecc94b;
+  --ff-font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --ff-font-size-base: 18px;
+  --ff-font-size-sm: 16px;
+  --ff-font-size-lg: 22px;
+  --ff-font-size-xl: 28px;
+  --ff-font-size-2xl: 36px;
+  --ff-font-weight-normal: 400;
+  --ff-font-weight-medium: 500;
+  --ff-font-weight-semibold: 600;
+  --ff-font-weight-bold: 700;
+  --ff-line-height-normal: 1.6;
+  --ff-space-xs: 0.5rem;
+  --ff-space-sm: 1rem;
+  --ff-space-md: 1.5rem;
+  --ff-space-lg: 2rem;
+  --ff-space-xl: 3rem;
+  --ff-radius-sm: 8px;
+  --ff-radius-md: 12px;
+  --ff-radius-lg: 20px;
+  --ff-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --ff-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --ff-touch-min: 48px;
+  --ff-transition-fast: 150ms ease;
+  --ff-transition-normal: 250ms ease;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--ff-font-sans);
+  font-size: var(--ff-font-size-base);
+  line-height: var(--ff-line-height-normal);
+  color: var(--ff-color-text-primary);
+  background-color: var(--ff-color-bg-primary);
+  min-height: 100dvh;
+}
+
+h1,
+h2,
+h3 {
+  font-weight: var(--ff-font-weight-bold);
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: var(--ff-font-size-2xl);
+}
+
+h2 {
+  font-size: var(--ff-font-size-xl);
+}
+
+h3 {
+  font-size: var(--ff-font-size-lg);
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--ff-font-size-sm);
+  font-weight: var(--ff-font-weight-semibold);
+  border: none;
+  border-radius: var(--ff-radius-md);
+  padding: var(--ff-space-sm) var(--ff-space-lg);
+  min-height: var(--ff-touch-min);
+  transition: all var(--ff-transition-normal);
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: var(--ff-font-size-base);
+  border: 2px solid #e2e8f0;
+  border-radius: var(--ff-radius-md);
+  padding: var(--ff-space-sm);
+  min-height: var(--ff-touch-min);
+  width: 100%;
+  transition: border-color var(--ff-transition-fast);
+  background: var(--ff-color-bg-secondary);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--ff-color-brand-primary);
+  box-shadow: 0 0 0 3px rgba(44, 122, 123, 0.15);
+}

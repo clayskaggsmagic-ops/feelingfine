@@ -58,8 +58,11 @@ import authRoutes from './routes/auth.js';
 app.use('/v1/auth', authRoutes);
 
 // Future routes (added in subsequent prompts)
-// app.use('/v1/content', contentRoutes);
-// app.use('/v1/tracking', trackingRoutes);
+import contentRoutes from './routes/content.js';
+import trackingRoutes from './routes/tracking.js';
+app.use('/v1/content', contentRoutes);
+app.use('/v1/tracking', trackingRoutes);
+
 // app.use('/v1/surveys', surveyRoutes);
 // app.use('/v1/ai', aiRoutes);
 // app.use('/v1/admin', adminRoutes);

@@ -1,12 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/services/api';
 import styles from './invite.module.css';
 
 export default function InvitePage() {
+    return (
+        <Suspense fallback={<main className={styles.page}><div className={styles.card}><p>Loading...</p></div></main>}>
+            <InviteContent />
+        </Suspense>
+    );
+}
+
+function InviteContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const { isAuthenticated, loading: authLoading } = useAuth();

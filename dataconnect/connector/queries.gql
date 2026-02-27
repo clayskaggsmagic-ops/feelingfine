@@ -7,7 +7,8 @@ query GetUserByUid($uid: String!) @auth(level: NO_ACCESS) {
   user(id: $uid) {
     id email displayName firstName lastName role
     programStartDate labels fontSizeMultiplier
-    emailOptIn provider photoURL createdAt updatedAt
+    emailOptIn dailyReminder weeklyReport challengeAlerts
+    provider photoURL walkthroughCompleted createdAt updatedAt
   }
 }
 

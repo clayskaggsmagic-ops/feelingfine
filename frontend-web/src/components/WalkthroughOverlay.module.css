@@ -1,137 +1,126 @@
-/* ── Walkthrough Overlay ─────────────────────────────────────────────────── */
+/* ── Walkthrough Overlay — Z-Index Elevation Technique ────────────────── */
 
+/* Full-screen container */
 .overlay {
     position: fixed;
     inset: 0;
     z-index: 9999;
-    /* Dark semi-transparent backdrop */
-    background: rgba(0, 0, 0, 0.6);
-    animation: fadeIn 0.3s ease;
+    pointer-events: none;
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-
-    to {
-        opacity: 1;
-    }
-}
-
-/* ── Spotlight Cutout ──────────────────────────────────────────────────── */
-
-.spotlight {
-    position: absolute;
-    border-radius: 12px;
-    /* Transparent hole via box-shadow — massive shadow covers everything else */
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+/* Dark backdrop — sits at z-index 10000.
+   Target elements are lifted to 10001 (above this) via inline JS styles.
+   Tooltip card sits at 10002. */
+.backdrop {
+    position: fixed;
+    inset: 0;
     z-index: 10000;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    /* Subtle pulsing glow */
-    border: 2px solid rgba(56, 178, 172, 0.5);
-    animation: pulse 2s infinite;
+    background: rgba(0, 0, 0, 0.55);
+    pointer-events: auto;
 }
 
-@keyframes pulse {
+/* ── Tooltip Card ────────────────────────────────────────────────────── */
 
-    0%,
-    100% {
-        border-color: rgba(56, 178, 172, 0.4);
-    }
-
-    50% {
-        border-color: rgba(56, 178, 172, 0.8);
-    }
-}
-
-/* ── Tooltip Card ──────────────────────────────────────────────────────── */
-
-.tooltip {
-    position: absolute;
-    z-index: 10001;
-    max-width: 340px;
-    width: calc(100vw - 32px);
-    background: rgba(255, 255, 255, 0.97);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+.card {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10002;
+    pointer-events: auto;
+    max-width: 420px;
+    width: calc(100vw - 2rem);
+    background: #fafcfc;
     border-radius: 20px;
+    border-top: 3px solid #38b2ac;
+    overflow: hidden;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15), 0 16px 48px rgba(0, 0, 0, 0.3);
+    /* Start hidden — fade in when ready */
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.cardVisible {
+    opacity: 1;
+}
+
+.cardContent {
     padding: 1.5rem;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.2);
-    animation: tooltipIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.tooltipCenter {
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%);
-}
-
-@keyframes tooltipIn {
-    from {
-        opacity: 0;
-        transform: translateY(12px) scale(0.95);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-.tooltipCenter {
-    animation-name: tooltipCenterIn;
-}
-
-@keyframes tooltipCenterIn {
-    from {
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(0.9);
-    }
-
-    to {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
-    }
-}
-
-.tooltipEmoji {
-    font-size: 2.5rem;
+.emoji {
+    font-size: 2rem;
     margin-bottom: 0.5rem;
     line-height: 1;
 }
 
-.tooltipTitle {
-    font-size: 1.25rem;
+.title {
+    font-size: 1.2rem;
     font-weight: 700;
-    color: var(--ff-color-text-primary);
-    margin-bottom: 0.5rem;
+    color: #1a1a1a;
+    margin-bottom: 0.4rem;
 }
 
-.tooltipBody {
+.body {
     font-size: 0.95rem;
-    line-height: 1.6;
-    color: var(--ff-color-text-secondary);
+    line-height: 1.55;
+    color: #555;
     margin-bottom: 1.25rem;
 }
 
-/* ── Footer ────────────────────────────────────────────────────────────── */
+/* ── Screenshot Preview ──────────────────────────────────────────────── */
 
-.tooltipFooter {
+.screenshotWrap {
+    width: 100%;
+    background: #f0f0f0;
+    overflow: hidden;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-height: 260px;
+}
+
+.screenshot {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    object-position: top;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────── */
+
+.footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.5rem;
 }
 
-.stepIndicator {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #aaa;
-    letter-spacing: 0.02em;
+.dots {
+    display: flex;
+    gap: 5px;
+    align-items: center;
 }
 
-.tooltipActions {
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ddd;
+    transition: all 0.25s ease;
+}
+
+.dotActive {
+    background: #38b2ac;
+    width: 18px;
+    border-radius: 4px;
+}
+
+.dotDone {
+    background: #a0d8d5;
+}
+
+.actions {
     display: flex;
     gap: 0.5rem;
 }
@@ -139,15 +128,13 @@
 .skipBtn {
     background: none;
     border: none;
-    color: var(--ff-color-text-secondary);
+    color: #999;
     font-size: 0.85rem;
     font-weight: 500;
     cursor: pointer;
     padding: 0.5rem 0.75rem;
-    min-height: 48px;
-    min-width: 48px;
+    min-height: 44px;
     border-radius: 10px;
-    transition: background 0.15s;
 }
 
 .skipBtn:hover {
@@ -155,37 +142,48 @@
 }
 
 .nextBtn {
-    background: var(--ff-color-brand-gradient);
+    background: linear-gradient(135deg, #38b2ac, #2c7a7b);
     color: white;
     border: none;
     font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
     padding: 0.6rem 1.5rem;
-    min-height: 48px;
-    min-width: 48px;
+    min-height: 44px;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(44, 122, 123, 0.3);
-    transition: transform 0.15s, box-shadow 0.15s;
+    transition: transform 0.1s;
 }
 
 .nextBtn:active {
     transform: scale(0.97);
 }
 
-/* ── Mobile ────────────────────────────────────────────────────────────── */
+/* ── Mobile ──────────────────────────────────────────────────────────── */
 
 @media (max-width: 768px) {
-    .tooltip {
-        max-width: calc(100vw - 32px);
+    .card {
+        bottom: 1rem;
+        max-width: calc(100vw - 1.5rem);
+    }
+
+    .cardContent {
         padding: 1.25rem;
     }
 
-    .tooltipEmoji {
-        font-size: 2rem;
+    .screenshotWrap {
+        max-height: 200px;
     }
 
-    .tooltipTitle {
-        font-size: 1.1rem;
+    .emoji {
+        font-size: 1.75rem;
+    }
+
+    .title {
+        font-size: 1.05rem;
+    }
+
+    .body {
+        font-size: 0.9rem;
     }
 }

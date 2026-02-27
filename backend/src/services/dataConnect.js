@@ -79,7 +79,7 @@ export async function insert(table, row) {
 
 // User
 export async function getUserByUid(uid) {
-    const data = await query(`query($uid: String!) { user(id: $uid) { id email displayName firstName lastName role programStartDate labels fontSizeMultiplier emailOptIn provider photoURL createdAt updatedAt } }`, { uid });
+    const data = await query(`query($uid: String!) { user(id: $uid) { id email displayName firstName lastName role programStartDate labels fontSizeMultiplier emailOptIn dailyReminder weeklyReport challengeAlerts provider photoURL walkthroughCompleted createdAt updatedAt } }`, { uid });
     return data.user;
 }
 
@@ -92,18 +92,21 @@ export async function deleteUser(uid) {
 }
 
 export async function updateUser(uid, updates) {
-    return mutate(`mutation($id: String!, $displayName: String, $firstName: String, $lastName: String, $fontSizeMultiplier: Float, $emailOptIn: Boolean, $labels: [String!], $programStartDate: Date) {
-    user_update(id: $id, data: {
-      displayName: $displayName
-      firstName: $firstName
-      lastName: $lastName
-      fontSizeMultiplier: $fontSizeMultiplier
-      emailOptIn: $emailOptIn
-      labels: $labels
-      programStartDate: $programStartDate
-      updatedAt_expr: "request.time"
-    })
-  }`, { id: uid, ...updates });
+    return mutate(`mutation($id: String!, $displayName: String, $firstName: String, $lastName: String, $fontSizeMultiplier: Float, $emailOptIn: Boolean, $dailyReminder: Boolean, $weeklyReport: Boolean, $challengeAlerts: Boolean, $labels: [String!], $programStartDate: Date) {
+      user_update(id: $id, data: {
+        displayName: $displayName
+        firstName: $firstName
+        lastName: $lastName
+        fontSizeMultiplier: $fontSizeMultiplier
+        emailOptIn: $emailOptIn
+        dailyReminder: $dailyReminder
+        weeklyReport: $weeklyReport
+        challengeAlerts: $challengeAlerts
+        labels: $labels
+        programStartDate: $programStartDate
+        updatedAt_expr: "request.time"
+      })
+    }`, { id: uid, ...updates });
 }
 
 // Cornerstones

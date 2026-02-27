@@ -9,7 +9,6 @@ import styles from './community.module.css';
 const TABS = [
     { id: 'challenge', label: '🏆 Challenge', },
     { id: 'friends', label: '👥 Friends' },
-    { id: 'chat', label: '💬 Chat' },
     { id: 'podcasts', label: '🎧 Podcasts' },
     { id: 'webinars', label: '📺 Webinars' },
 ];
@@ -40,7 +39,6 @@ export default function CommunityPage() {
             <div className={styles.content}>
                 {tab === 'challenge' && <ChallengeTab />}
                 {tab === 'friends' && <FriendsTab uid={user.uid} />}
-                {tab === 'chat' && <ChatTab uid={user.uid} />}
                 {tab === 'podcasts' && <PodcastsTab />}
                 {tab === 'webinars' && <WebinarsTab />}
             </div>
@@ -69,7 +67,7 @@ function ChallengeTab() {
     );
 }
 
-// ── Friends Tab ─────────────────────────────────────────────────────────────
+// ── Friends Tab (with integrated chat) ──────────────────────────────────────
 function FriendsTab({ uid }) {
     const [friends, setFriends] = useState({ incoming: [], outgoing: [] });
     const [groups, setGroups] = useState([]);
@@ -77,6 +75,11 @@ function FriendsTab({ uid }) {
     const [groupName, setGroupName] = useState('');
     const [groupDesc, setGroupDesc] = useState('');
     const [toast, setToast] = useState('');
+    // Chat state — opens inline when clicking a friend or group
+    const [chatOpen, setChatOpen] = useState(null); // { type: 'friend'|'group', id, name }
+    const [messages, setMessages] = useState([]);
+    const [msgText, setMsgText] = useState('');
+    const bottomRef = useRef(null);
 
     const fetchAll = useCallback(async () => {
         const [f, g] = await Promise.all([
@@ -88,6 +91,24 @@ function FriendsTab({ uid }) {
     }, []);
 
     useEffect(() => { fetchAll(); }, [fetchAll]);
+
+    // Fetch messages when chatOpen changes
+    const fetchMessages = useCallback(async () => {
+        if (!chatOpen) return;
+        const param = chatOpen.type === 'group' ? `groupId=${chatOpen.id}` : `friendId=${chatOpen.id}`;
+        try {
+            const data = await api.get(`/v1/community/messages?${param}`);
+            setMessages(data.messages || []);
+        } catch { }
+    }, [chatOpen]);
+
+    useEffect(() => {
+        fetchMessages();
+        const i = setInterval(fetchMessages, 5000);
+        return () => clearInterval(i);
+    }, [fetchMessages]);
+
+    useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
     function showToast(msg) { setToast(msg); setTimeout(() => setToast(''), 3000); }
 
@@ -129,14 +150,82 @@ function FriendsTab({ uid }) {
         catch (err) { showToast('Error: ' + err.message); }
     }
 
+    async function inviteFriend() {
+        try {
+            const { code } = await api.post('/v1/community/invite', { type: 'friend' });
+            const url = `${window.location.origin}/invite?code=${code}`;
+            if (navigator.share) {
+                await navigator.share({ title: 'Join me on Feeling Fine!', url });
+            } else {
+                await navigator.clipboard.writeText(url);
+                showToast('Invite link copied!');
+            }
+        } catch (err) { showToast('Error creating invite'); }
+    }
+
+    async function inviteToGroup(groupId) {
+        try {
+            const { code } = await api.post('/v1/community/invite', { type: 'group', groupId });
+            const url = `${window.location.origin}/invite?code=${code}`;
+            if (navigator.share) {
+                await navigator.share({ title: 'Join our group on Feeling Fine!', url });
+            } else {
+                await navigator.clipboard.writeText(url);
+                showToast('Group invite link copied!');
+            }
+        } catch (err) { showToast('Error creating invite'); }
+    }
+
+    async function sendMessage() {
+        if (!msgText.trim() || !chatOpen) return;
+        const body = { text: msgText };
+        if (chatOpen.type === 'group') body.recipientGroupId = chatOpen.id;
+        else body.recipientUserId = chatOpen.id;
+        try { await api.post('/v1/community/messages', body); setMsgText(''); fetchMessages(); }
+        catch { }
+    }
+
     const accepted = [...friends.incoming.filter(f => f.status === 'accepted'), ...friends.outgoing.filter(f => f.status === 'accepted')];
     const pending = friends.incoming.filter(f => f.status === 'pending');
+
+    // If chat is open, show the chat panel instead
+    if (chatOpen) {
+        return (
+            <div>
+                <button className={styles.backBtn} onClick={() => { setChatOpen(null); setMessages([]); }}>
+                    ← Back to Friends
+                </button>
+                <h3 style={{ margin: '0.75rem 0' }}>💬 {chatOpen.name}</h3>
+                <div className={styles.chatBox}>
+                    {messages.length === 0 ? <p className={styles.emptyMsg}>No messages yet. Say hello!</p> : messages.map(m => (
+                        <div key={m.id} className={`${styles.chatBubble} ${m.sender?.uid === uid ? styles.chatBubbleMine : ''}`}>
+                            <span className={styles.chatSender}>{m.sender?.displayName || 'User'}</span>
+                            <p>{m.text}</p>
+                            <span className={styles.chatTime}>{new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                    ))}
+                    <div ref={bottomRef} />
+                </div>
+                <div className={styles.chatInput}>
+                    <input value={msgText} onChange={e => setMsgText(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} placeholder="Type a message..." />
+                    <button onClick={sendMessage} className={styles.sendBtn}>Send</button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div>
             {toast && <div className={styles.toastInline}>{toast}</div>}
 
-            {/* Add friend */}
+            {/* Invite a friend */}
+            <div className={styles.sectionBox} style={{ marginBottom: '1rem' }}>
+                <button onClick={inviteFriend} className={styles.inviteBtn}>
+                    📩 Invite a Friend
+                </button>
+            </div>
+
+            {/* Add friend by ID */}
             <div className={styles.friendSend}>
                 <input value={friendEmail} onChange={e => setFriendEmail(e.target.value)} placeholder="Friend's user ID..." />
                 <button onClick={sendRequest} className={styles.smallBtn}>Send Request</button>
@@ -158,18 +247,25 @@ function FriendsTab({ uid }) {
                 </div>
             )}
 
-            {/* Friends list */}
+            {/* Friends list — click to chat */}
             <div className={styles.sectionBox}>
                 <h3>Friends ({accepted.length})</h3>
-                {accepted.length === 0 ? <p className={styles.emptyMsg}>No friends yet.</p> : accepted.map(f => (
-                    <div key={f.id} className={styles.friendRow}>
-                        <span>{f.fromUser?.displayName || f.toUser?.displayName || 'Friend'}</span>
-                        <button className={styles.rejectBtn} onClick={() => handleFriend(f.id, 'remove')}>Remove</button>
-                    </div>
-                ))}
+                {accepted.length === 0 ? <p className={styles.emptyMsg}>No friends yet. Invite someone!</p> : accepted.map(f => {
+                    const friendUid = f.fromUserId === uid ? f.toUserId : f.fromUserId;
+                    const friendName = f.fromUser?.displayName || f.toUser?.displayName || 'Friend';
+                    return (
+                        <div key={f.id} className={`${styles.friendRow} ${styles.friendRowClickable}`} onClick={() => setChatOpen({ type: 'friend', id: friendUid, name: friendName })}>
+                            <span>{friendName}</span>
+                            <div style={{ display: 'flex', gap: '0.35rem' }}>
+                                <span className={styles.chatHint}>💬 Chat</span>
+                                <button className={styles.rejectBtn} onClick={e => { e.stopPropagation(); handleFriend(f.id, 'remove'); }}>Remove</button>
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
 
-            {/* Groups */}
+            {/* Groups — click to chat */}
             <div className={styles.sectionBox}>
                 <h3>Groups ({groups.length})</h3>
                 <div className={styles.friendSend} style={{ marginBottom: '0.75rem' }}>
@@ -177,69 +273,16 @@ function FriendsTab({ uid }) {
                     <button onClick={createGroup} className={styles.smallBtn}>Create</button>
                 </div>
                 {groups.map(g => (
-                    <div key={g.id} className={styles.friendRow}>
+                    <div key={g.id} className={`${styles.friendRow} ${styles.friendRowClickable}`} onClick={() => setChatOpen({ type: 'group', id: g.id, name: g.name })}>
                         <div><strong>{g.name}</strong> <span className={styles.badge}>{g.category}</span>{g.description && <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.2rem' }}>{g.description}</p>}</div>
                         <div style={{ display: 'flex', gap: '0.35rem' }}>
-                            <button className={styles.acceptBtn} onClick={() => joinGroup(g.id)}>Join</button>
-                            <button className={styles.rejectBtn} onClick={() => leaveGroup(g.id)}>Leave</button>
+                            <span className={styles.chatHint}>💬 Chat</span>
+                            <button className={styles.smallBtn} onClick={e => { e.stopPropagation(); inviteToGroup(g.id); }}>Invite</button>
+                            <button className={styles.acceptBtn} onClick={e => { e.stopPropagation(); joinGroup(g.id); }}>Join</button>
+                            <button className={styles.rejectBtn} onClick={e => { e.stopPropagation(); leaveGroup(g.id); }}>Leave</button>
                         </div>
                     </div>
                 ))}
-            </div>
-        </div>
-    );
-}
-
-// ── Chat Tab ────────────────────────────────────────────────────────────────
-function ChatTab({ uid }) {
-    const [messages, setMessages] = useState([]);
-    const [text, setText] = useState('');
-    const [chatTarget, setChatTarget] = useState({ type: 'friend', id: '' });
-    const bottomRef = useRef(null);
-
-    const fetchMessages = useCallback(async () => {
-        if (!chatTarget.id) return;
-        const param = chatTarget.type === 'group' ? `groupId=${chatTarget.id}` : `friendId=${chatTarget.id}`;
-        try {
-            const data = await api.get(`/v1/community/messages?${param}`);
-            setMessages(data.messages || []);
-        } catch { }
-    }, [chatTarget]);
-
-    useEffect(() => { fetchMessages(); const i = setInterval(fetchMessages, 5000); return () => clearInterval(i); }, [fetchMessages]);
-    useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
-
-    async function sendMessage() {
-        if (!text.trim() || !chatTarget.id) return;
-        const body = { text };
-        if (chatTarget.type === 'group') body.recipientGroupId = chatTarget.id;
-        else body.recipientUserId = chatTarget.id;
-        try { await api.post('/v1/community/messages', body); setText(''); fetchMessages(); }
-        catch { }
-    }
-
-    return (
-        <div>
-            <div className={styles.chatTargetRow}>
-                <select value={chatTarget.type} onChange={e => setChatTarget({ type: e.target.value, id: '' })} style={{ width: '100px' }}>
-                    <option value="friend">Friend</option>
-                    <option value="group">Group</option>
-                </select>
-                <input value={chatTarget.id} onChange={e => setChatTarget(prev => ({ ...prev, id: e.target.value }))} placeholder={`${chatTarget.type === 'group' ? 'Group' : 'Friend'} ID...`} />
-            </div>
-            <div className={styles.chatBox}>
-                {messages.length === 0 ? <p className={styles.emptyMsg}>No messages yet.</p> : messages.map(m => (
-                    <div key={m.id} className={`${styles.chatBubble} ${m.sender?.uid === uid ? styles.chatBubbleMine : ''}`}>
-                        <span className={styles.chatSender}>{m.sender?.displayName || 'User'}</span>
-                        <p>{m.text}</p>
-                        <span className={styles.chatTime}>{new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                    </div>
-                ))}
-                <div ref={bottomRef} />
-            </div>
-            <div className={styles.chatInput}>
-                <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} placeholder="Type a message..." />
-                <button onClick={sendMessage} className={styles.sendBtn}>Send</button>
             </div>
         </div>
     );

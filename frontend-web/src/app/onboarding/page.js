@@ -7,7 +7,7 @@ import { api } from '@/services/api';
 import styles from './onboarding.module.css';
 
 export default function OnboardingPage() {
-    const { user, loading: authLoading, refreshProfile } = useAuth();
+    const { user, loading: authLoading, refreshProfile, emailVerified } = useAuth();
     const router = useRouter();
     const [survey, setSurvey] = useState(null);
     const [questions, setQuestions] = useState([]);
@@ -56,11 +56,13 @@ export default function OnboardingPage() {
         if (!authLoading) {
             if (!user) {
                 router.push('/login');
+            } else if (!emailVerified) {
+                router.push('/verify-email');
             } else {
                 fetchSurvey();
             }
         }
-    }, [authLoading, user, router, fetchSurvey]);
+    }, [authLoading, user, emailVerified, router, fetchSurvey]);
 
     function setAnswer(questionIndex, value) {
         setAnswers(prev => ({ ...prev, [questionIndex]: value }));

@@ -53,29 +53,29 @@ app.get('/health', (_req, res) => {
     });
 });
 
-// Global rate limiter + body sanitizer
-import { globalLimiter, authLimiter, apiLimiter, aiLimiter, trackingLimiter } from './middleware/rateLimit.js';
+// Rate limiters — DISABLED for development (TODO: re-enable for production)
+// import { globalLimiter, authLimiter, apiLimiter, aiLimiter, trackingLimiter } from './middleware/rateLimit.js';
 import { sanitizeBody } from './middleware/validate.js';
-app.use(globalLimiter);
+// app.use(globalLimiter);
 app.use(sanitizeBody);
 
 // API v1 routes
 import authRoutes from './routes/auth.js';
-app.use('/v1/auth', authLimiter, authRoutes);
+app.use('/v1/auth', authRoutes);
 
 import contentRoutes from './routes/content.js';
 import trackingRoutes from './routes/tracking.js';
-app.use('/v1/content', apiLimiter, contentRoutes);
-app.use('/v1/tracking', trackingLimiter, trackingRoutes);
+app.use('/v1/content', contentRoutes);
+app.use('/v1/tracking', trackingRoutes);
 
 import surveyRoutes from './routes/surveys.js';
-app.use('/v1/surveys', apiLimiter, surveyRoutes);
+app.use('/v1/surveys', surveyRoutes);
 import aiRoutes from './routes/ai.js';
-app.use('/v1/ai', aiLimiter, aiRoutes);
+app.use('/v1/ai', aiRoutes);
 import adminRoutes from './routes/admin.js';
-app.use('/v1/admin', apiLimiter, adminRoutes);
+app.use('/v1/admin', adminRoutes);
 import communityRoutes from './routes/community.js';
-app.use('/v1/community', apiLimiter, communityRoutes);
+app.use('/v1/community', communityRoutes);
 
 // ---------------------------------------------------------------------------
 // Error handling

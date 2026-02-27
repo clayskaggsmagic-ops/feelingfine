@@ -157,5 +157,115 @@ router.post('/messages', requireAuth, async (req, res, next) => {
         res.status(201).json(result);
     } catch (err) { next(err); }
 });
+// ─── Invitations (shareable links) ──────────────────────────────────────────
+
+function generateCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    let code = '';
+    for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    return code;
+}
+
+// Create an invite link
+router.post('/invite', requireAuth, async (req, res, next) => {
+    try {
+        const { type, groupId } = req.body; // type: 'friend' | 'group'
+        if (!type || !['friend', 'group'].includes(type)) {
+            return res.status(400).json({ error: 'type must be "friend" or "group"' });
+        }
+        if (type === 'group' && !groupId) {
+            return res.status(400).json({ error: 'groupId required for group invites' });
+        }
+
+        const code = generateCode();
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 days
+
+        const data = { code, type, createdById: req.user.uid, expiresAt };
+        if (groupId) data.groupId = groupId;
+
+        await mutate(
+            `mutation($data: Invitation_Data!) { invitation_insert(data: $data) { id } }`,
+            { data }
+        );
+
+        console.log(`[invite] Created ${type} invite: ${code} by ${req.user.uid}`);
+        res.status(201).json({ code, type });
+    } catch (err) { next(err); }
+});
+
+// Look up an invite (public — no auth required)
+router.get('/invite/:code', async (req, res, next) => {
+    try {
+        const result = await query(
+            `query($code: String!) { invitations(where: { code: { eq: $code } }) { id code type groupId expiresAt createdBy { displayName photoURL } } }`,
+            { code: req.params.code }
+        );
+        const invite = result.invitations?.[0];
+        if (!invite) return res.status(404).json({ error: 'Invite not found' });
+
+        // Check expiration
+        if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
+            return res.status(410).json({ error: 'This invite has expired' });
+        }
+
+        const response = {
+            code: invite.code,
+            type: invite.type,
+            creatorName: invite.createdBy?.displayName || 'Someone',
+            creatorPhoto: invite.createdBy?.photoURL || null,
+        };
+
+        // If group invite, fetch group name
+        if (invite.type === 'group' && invite.groupId) {
+            const groupResult = await query(
+                `query($id: UUID!) { communityGroup(id: $id) { name description } }`,
+                { id: invite.groupId }
+            );
+            response.groupName = groupResult.communityGroup?.name || 'a group';
+            response.groupDescription = groupResult.communityGroup?.description || '';
+        }
+
+        res.json(response);
+    } catch (err) { next(err); }
+});
+
+// Accept an invite
+router.post('/invite/:code/accept', requireAuth, async (req, res, next) => {
+    try {
+        const uid = req.user.uid;
+        const result = await query(
+            `query($code: String!) { invitations(where: { code: { eq: $code } }) { id code type groupId createdById expiresAt } }`,
+            { code: req.params.code }
+        );
+        const invite = result.invitations?.[0];
+        if (!invite) return res.status(404).json({ error: 'Invite not found' });
+
+        if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
+            return res.status(410).json({ error: 'This invite has expired' });
+        }
+
+        // Don't let users accept their own invite
+        if (invite.createdById === uid) {
+            return res.status(400).json({ error: 'Cannot accept your own invite' });
+        }
+
+        if (invite.type === 'friend') {
+            // Create accepted friend request (skip pending)
+            await mutate(
+                `mutation($data: FriendRequest_Data!) { friendRequest_insert(data: $data) { id } }`,
+                { data: { fromUserId: invite.createdById, toUserId: uid, status: 'accepted' } }
+            );
+            console.log(`[invite] Friend invite ${invite.code} accepted by ${uid}`);
+            res.json({ success: true, type: 'friend', message: 'Friend added!' });
+        } else if (invite.type === 'group') {
+            await mutate(
+                `mutation($data: GroupMember_Data!) { groupMember_insert(data: $data) { id } }`,
+                { data: { groupId: invite.groupId, userId: uid } }
+            );
+            console.log(`[invite] Group invite ${invite.code} accepted by ${uid}`);
+            res.json({ success: true, type: 'group', message: 'Joined the group!' });
+        }
+    } catch (err) { next(err); }
+});
 
 export default router;

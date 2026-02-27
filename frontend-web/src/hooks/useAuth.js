@@ -45,6 +45,12 @@ export function AuthProvider({ children }) {
         return () => unsubscribe();
     }, [auth, loadProfile]);
 
+    // Apply font-size preference globally whenever profile loads
+    useEffect(() => {
+        const multiplier = profile?.fontSizeMultiplier || 1.0;
+        document.documentElement.style.fontSize = `${multiplier * 100}%`;
+    }, [profile]);
+
     const logout = useCallback(async () => {
         await signOut(auth);
         setUser(null);
@@ -61,6 +67,7 @@ export function AuthProvider({ children }) {
         loading,        // True until initial auth check completes
         error,
         isAuthenticated: !!user,
+        emailVerified: user?.emailVerified ?? false,
         isAdmin: profile?.role === 'admin',
         logout,
         refreshProfile,

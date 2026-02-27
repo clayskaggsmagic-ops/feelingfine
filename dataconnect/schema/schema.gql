@@ -16,6 +16,9 @@ type User @table {
   labels: [String!]
   fontSizeMultiplier: Float @default(expr: "1.0")
   emailOptIn: Boolean @default(expr: "true")
+  dailyReminder: Boolean @default(expr: "true")
+  weeklyReport: Boolean @default(expr: "true")
+  challengeAlerts: Boolean @default(expr: "true")
   provider: String @col(dataType: "varchar(30)")
   photoURL: String
   walkthroughCompleted: Boolean @default(expr: "false")
@@ -203,5 +206,15 @@ type GroupMember @table {
   group: CommunityGroup!
   user: User!
   joinedAt: Timestamp! @default(expr: "request.time")
+}
+
+# ── Invitations (shareable friend/group invite links) ────────────────────────
+type Invitation @table {
+  code: String! @col(dataType: "varchar(12)") @unique
+  type: String! @col(dataType: "varchar(20)")
+  createdBy: User!
+  groupId: UUID
+  expiresAt: Timestamp
+  createdAt: Timestamp! @default(expr: "request.time")
 }
 

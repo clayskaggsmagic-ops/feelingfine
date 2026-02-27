@@ -134,10 +134,24 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f1f3f5;
 }
 
-.toggle span {
+.toggle:last-of-type {
+    border-bottom: none;
+}
+
+.toggleLabel {
     font-weight: 500;
+    font-size: 0.95rem;
+    color: var(--text);
+}
+
+.toggleHint {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    margin-top: 2px;
 }
 
 .switch {
@@ -255,6 +269,11 @@
     color: white;
 }
 
+.saveBar {
+    margin-top: 1.5rem;
+    padding-bottom: 1rem;
+}
+
 @media (max-width: 640px) {
     .grid {
         grid-template-columns: 1fr;
@@ -262,5 +281,6 @@
 
     .page {
         padding: 1rem;
+        padding-bottom: 2rem;
     }
 }

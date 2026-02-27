@@ -58,9 +58,10 @@
 }
 
 .tabActive {
-    background: var(--primary);
-    color: white;
+    background: rgba(56, 178, 172, 0.1);
+    color: var(--primary);
     border-color: var(--primary);
+    font-weight: 700;
 }
 
 .content {
@@ -381,3 +382,40 @@
         max-width: 100%;
     }
 }
+
+/* ── Invite Button ──────────────────────────────────────────────────────── */
+.inviteBtn {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border: 2px dashed var(--ff-color-brand-primary);
+    border-radius: 14px;
+    background: rgba(56, 178, 172, 0.06);
+    color: var(--ff-color-brand-primary);
+    font-size: var(--ff-font-size-md);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+    min-height: 48px;
+}
+
+.inviteBtn:hover {
+    background: rgba(56, 178, 172, 0.12);
+    transform: translateY(-1px);
+}
+/* ── Clickable friend/group rows ───────────────────────────────────────── */
+.friendRowClickable {
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+}
+.friendRowClickable:hover { background: #f0f9ff; transform: translateX(2px); }
+
+.chatHint {
+    font-size: 0.8rem;
+    color: var(--primary);
+    font-weight: 500;
+    opacity: 0.7;
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+}
+.friendRowClickable:hover .chatHint { opacity: 1; }

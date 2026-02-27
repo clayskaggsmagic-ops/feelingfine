@@ -16,6 +16,9 @@ mutation UpsertUser(
   $labels: [String!]
   $fontSizeMultiplier: Float
   $emailOptIn: Boolean
+  $dailyReminder: Boolean
+  $weeklyReport: Boolean
+  $challengeAlerts: Boolean
 ) @auth(level: NO_ACCESS) {
   user_upsert(data: {
     id: $id
@@ -30,6 +33,9 @@ mutation UpsertUser(
     labels: $labels
     fontSizeMultiplier: $fontSizeMultiplier
     emailOptIn: $emailOptIn
+    dailyReminder: $dailyReminder
+    weeklyReport: $weeklyReport
+    challengeAlerts: $challengeAlerts
     updatedAt_expr: "request.time"
   })
 }
@@ -41,6 +47,9 @@ mutation UpdateUser(
   $lastName: String
   $fontSizeMultiplier: Float
   $emailOptIn: Boolean
+  $dailyReminder: Boolean
+  $weeklyReport: Boolean
+  $challengeAlerts: Boolean
   $labels: [String!]
   $programStartDate: Date
 ) @auth(level: NO_ACCESS) {
@@ -50,6 +59,9 @@ mutation UpdateUser(
     lastName: $lastName
     fontSizeMultiplier: $fontSizeMultiplier
     emailOptIn: $emailOptIn
+    dailyReminder: $dailyReminder
+    weeklyReport: $weeklyReport
+    challengeAlerts: $challengeAlerts
     labels: $labels
     programStartDate: $programStartDate
     updatedAt_expr: "request.time"

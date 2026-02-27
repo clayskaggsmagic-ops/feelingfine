@@ -206,7 +206,8 @@ router.patch('/me', requireAuth, async (req, res, next) => {
     try {
         const allowedFields = [
             'displayName', 'firstName', 'lastName', 'photoURL',
-            'emailOptIn', 'fontSizeMultiplier',
+            'emailOptIn', 'dailyReminder', 'weeklyReport', 'challengeAlerts',
+            'fontSizeMultiplier',
             'programStartDate', 'labels',
         ];
 

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import {
     getAuth,
     createUserWithEmailAndPassword,
+    sendEmailVerification,
     signInWithPopup,
     GoogleAuthProvider,
     updateProfile,
@@ -29,6 +30,18 @@ export default function SignupPage() {
             idToken,
             displayName: displayName || firebaseUser.displayName || '',
         });
+        // Auto-accept pending invite (from /invite page)
+        const pendingInvite = localStorage.getItem('pendingInvite');
+        if (pendingInvite) {
+            try {
+                await api.post(`/v1/community/invite/${pendingInvite}/accept`);
+                console.log('[signup] Auto-accepted invite:', pendingInvite);
+            } catch (err) {
+                console.error('[signup] Failed to accept invite:', err.message);
+            } finally {
+                localStorage.removeItem('pendingInvite');
+            }
+        }
     }
 
     async function handleEmailSignup(e) {
@@ -40,7 +53,9 @@ export default function SignupPage() {
             const cred = await createUserWithEmailAndPassword(auth, email, password);
             await updateProfile(cred.user, { displayName: name });
             await createBackendProfile(cred.user, name);
-            router.push('/onboarding');
+            // Send verification email before allowing access
+            await sendEmailVerification(cred.user);
+            router.push('/verify-email');
         } catch (err) {
             console.error('[signup] Error:', err);
             if (err.code === 'auth/email-already-in-use') {

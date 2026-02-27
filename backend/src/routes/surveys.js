@@ -74,7 +74,6 @@ router.post('/:surveyId/submit', requireAuth, async (req, res, next) => {
         // If onboarding survey, compute labels and mark complete
         const profileUpdates = {};
         if (survey.type === 'onboarding') {
-            profileUpdates.onboardingSurveyCompleted = true;
             profileUpdates.programStartDate = new Date().toISOString();
 
             const labels = computeLabels(answers, survey.questions);

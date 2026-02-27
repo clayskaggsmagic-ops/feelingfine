@@ -9,10 +9,13 @@ import { sendPasswordResetEmail, deleteUser } from 'firebase/auth';
 import styles from './settings.module.css';
 
 export default function SettingsPage() {
-    const { user, profile, loading } = useAuth();
+    const { user, profile, loading, refreshProfile } = useAuth();
     const router = useRouter();
     const [displayName, setDisplayName] = useState('');
     const [emailOptIn, setEmailOptIn] = useState(true);
+    const [dailyReminder, setDailyReminder] = useState(true);
+    const [weeklyReport, setWeeklyReport] = useState(true);
+    const [challengeAlerts, setChallengeAlerts] = useState(true);
     const [fontSizeMultiplier, setFontSizeMultiplier] = useState(1.0);
     const [saving, setSaving] = useState(false);
     const [toast, setToast] = useState('');
@@ -23,23 +26,34 @@ export default function SettingsPage() {
         if (profile) {
             setDisplayName(profile.displayName || '');
             setEmailOptIn(profile.emailOptIn !== false);
+            setDailyReminder(profile.dailyReminder !== false);
+            setWeeklyReport(profile.weeklyReport !== false);
+            setChallengeAlerts(profile.challengeAlerts !== false);
             setFontSizeMultiplier(profile.fontSizeMultiplier || 1.0);
         }
     }, [profile]);
 
-    // Apply font scaling to document root
+    // Live-preview font scaling on settings page
     useEffect(() => {
         document.documentElement.style.fontSize = `${fontSizeMultiplier * 100}%`;
-        return () => { document.documentElement.style.fontSize = ''; };
     }, [fontSizeMultiplier]);
 
     function showToast(msg) { setToast(msg); setTimeout(() => setToast(''), 3000); }
 
+    // Save ALL settings in one call
     async function handleSave() {
         setSaving(true);
         try {
-            await api.patch('/v1/auth/me', { displayName, emailOptIn, fontSizeMultiplier });
-            showToast('Settings saved!');
+            await api.patch('/v1/auth/me', {
+                displayName,
+                emailOptIn,
+                dailyReminder,
+                weeklyReport,
+                challengeAlerts,
+                fontSizeMultiplier,
+            });
+            await refreshProfile();
+            showToast('Settings saved successfully.');
         } catch (err) { showToast('Error: ' + err.message); }
         finally { setSaving(false); }
     }
@@ -47,7 +61,7 @@ export default function SettingsPage() {
     async function handlePasswordReset() {
         try {
             await sendPasswordResetEmail(auth, user.email);
-            showToast('Password reset email sent!');
+            showToast('Password reset email sent.');
         } catch (err) { showToast('Error: ' + err.message); }
     }
 
@@ -59,7 +73,7 @@ export default function SettingsPage() {
             const a = document.createElement('a');
             a.href = url; a.download = 'my-data.json'; a.click();
             URL.revokeObjectURL(url);
-            showToast('Data downloaded!');
+            showToast('Data downloaded.');
         } catch (err) { showToast('Error: ' + err.message); }
     }
 
@@ -87,7 +101,7 @@ export default function SettingsPage() {
             <div className={styles.grid}>
                 {/* Profile */}
                 <section className={styles.card}>
-                    <h2 className={styles.sectionTitle}>👤 Profile</h2>
+                    <h2 className={styles.sectionTitle}>Profile</h2>
                     <label className={styles.field}>
                         <span>Display Name</span>
                         <input value={displayName} onChange={e => setDisplayName(e.target.value)} />
@@ -96,19 +110,16 @@ export default function SettingsPage() {
                         <span>Email</span>
                         <input value={user?.email || ''} disabled style={{ opacity: 0.6 }} />
                     </label>
-                    <button className={styles.primaryBtn} onClick={handleSave} disabled={saving} style={{ marginTop: '1rem' }}>
-                        {saving ? 'Saving...' : 'Save Profile'}
-                    </button>
                 </section>
 
                 {/* Accessibility */}
                 <section className={styles.card}>
-                    <h2 className={styles.sectionTitle}>♿ Accessibility</h2>
+                    <h2 className={styles.sectionTitle}>Accessibility</h2>
                     <label className={styles.field}>
                         <span>Font Size</span>
                         <div className={styles.fontScale}>
                             {[1.0, 1.25, 1.5].map(s => (
-                                <button key={s} className={`${styles.scaleBtn} ${fontSizeMultiplier === s ? styles.scaleBtnActive : ''}`} onClick={() => { setFontSizeMultiplier(s); }}>
+                                <button key={s} className={`${styles.scaleBtn} ${fontSizeMultiplier === s ? styles.scaleBtnActive : ''}`} onClick={() => setFontSizeMultiplier(s)}>
                                     {s}x
                                 </button>
                             ))}
@@ -121,27 +132,70 @@ export default function SettingsPage() {
 
                 {/* Notifications */}
                 <section className={styles.card}>
-                    <h2 className={styles.sectionTitle}>🔔 Notifications</h2>
+                    <h2 className={styles.sectionTitle}>Notifications</h2>
+
                     <label className={styles.toggle}>
-                        <span>Daily wellness emails</span>
+                        <div>
+                            <span className={styles.toggleLabel}>Daily wellness emails</span>
+                            <p className={styles.toggleHint}>Morning email with your dose and tasks</p>
+                        </div>
                         <label className={styles.switch}>
                             <input type="checkbox" checked={emailOptIn} onChange={e => setEmailOptIn(e.target.checked)} />
                             <span className={styles.slider}></span>
                         </label>
                     </label>
-                    <p className={styles.hint}>{emailOptIn ? 'You will receive daily emails.' : 'You have opted out of emails.'}</p>
+
+                    <label className={styles.toggle}>
+                        <div>
+                            <span className={styles.toggleLabel}>Daily reminders</span>
+                            <p className={styles.toggleHint}>Reminder to check in if you haven't yet</p>
+                        </div>
+                        <label className={styles.switch}>
+                            <input type="checkbox" checked={dailyReminder} onChange={e => setDailyReminder(e.target.checked)} />
+                            <span className={styles.slider}></span>
+                        </label>
+                    </label>
+
+                    <label className={styles.toggle}>
+                        <div>
+                            <span className={styles.toggleLabel}>Weekly progress report</span>
+                            <p className={styles.toggleHint}>Summary of your week every Sunday</p>
+                        </div>
+                        <label className={styles.switch}>
+                            <input type="checkbox" checked={weeklyReport} onChange={e => setWeeklyReport(e.target.checked)} />
+                            <span className={styles.slider}></span>
+                        </label>
+                    </label>
+
+                    <label className={styles.toggle}>
+                        <div>
+                            <span className={styles.toggleLabel}>Challenge alerts</span>
+                            <p className={styles.toggleHint}>When a new community challenge starts</p>
+                        </div>
+                        <label className={styles.switch}>
+                            <input type="checkbox" checked={challengeAlerts} onChange={e => setChallengeAlerts(e.target.checked)} />
+                            <span className={styles.slider}></span>
+                        </label>
+                    </label>
                 </section>
 
-                {/* Privacy */}
+                {/* Privacy & Account */}
                 <section className={styles.card}>
-                    <h2 className={styles.sectionTitle}>🔒 Privacy & Account</h2>
-                    <button className={styles.secondaryBtn} onClick={handlePasswordReset}>📧 Send Password Reset Email</button>
-                    <button className={styles.secondaryBtn} onClick={handleDownloadData} style={{ marginTop: '0.5rem' }}>📥 Download My Data</button>
+                    <h2 className={styles.sectionTitle}>Privacy & Account</h2>
+                    <button className={styles.secondaryBtn} onClick={handlePasswordReset}>Send Password Reset Email</button>
+                    <button className={styles.secondaryBtn} onClick={handleDownloadData} style={{ marginTop: '0.5rem' }}>Download My Data</button>
                     <div className={styles.dangerZone}>
                         <p className={styles.dangerLabel}>Danger Zone</p>
-                        <button className={styles.deleteBtn} onClick={handleDeleteAccount}>🗑 Delete My Account</button>
+                        <button className={styles.deleteBtn} onClick={handleDeleteAccount}>Delete My Account</button>
                     </div>
                 </section>
+            </div>
+
+            {/* Single save button at the bottom for all settings */}
+            <div className={styles.saveBar}>
+                <button className={styles.primaryBtn} onClick={handleSave} disabled={saving}>
+                    {saving ? 'Saving...' : 'Save All Settings'}
+                </button>
             </div>
         </div>
     );

@@ -40,6 +40,22 @@ router.get('/daily-dos', requireAuth, async (req, res, next) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// GET /v1/content/daily-dos/:cornerstoneId — Daily Dos for a specific cornerstone
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/daily-dos/:cornerstoneId', requireAuth, async (req, res, next) => {
+    try {
+        const { cornerstoneId } = req.params;
+        const { getDosByCategory } = await import('../services/dataConnect.js');
+        const dos = await getDosByCategory(cornerstoneId);
+        console.log(`[content/daily-dos/${cornerstoneId}] Returning ${dos.length} dos`);
+        res.json({ dos, cornerstoneId });
+    } catch (err) {
+        console.error('[content/daily-dos/:cornerstoneId] Error:', err.message);
+        next(err);
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // GET /v1/content/cornerstones — All cornerstone definitions
 // ─────────────────────────────────────────────────────────────────────────────
 router.get('/cornerstones', requireAuth, async (req, res, next) => {

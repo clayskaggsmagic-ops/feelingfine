@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/services/api';
-import WalkthroughOverlay from '@/components/WalkthroughOverlay';
 import styles from './dashboard.module.css';
 
 // ─── SVG Cornerstone Icons ──────────────────────────────────────────────────
@@ -64,7 +63,7 @@ function getCornerstoneIcon(id) {
 // ─── Main Dashboard Component ───────────────────────────────────────────────
 
 export default function DashboardPage() {
-    const { user, profile, loading: authLoading, isAuthenticated, logout } = useAuth();
+    const { user, profile, loading: authLoading, isAuthenticated, emailVerified, logout } = useAuth();
     const router = useRouter();
 
     const [doseData, setDoseData] = useState(null);
@@ -83,33 +82,17 @@ export default function DashboardPage() {
     const [customDoText, setCustomDoText] = useState('');
     const [showOtherCornerstones, setShowOtherCornerstones] = useState(false);
     const [expandedCornerstone, setExpandedCornerstone] = useState(null);
+    const [cornerstoneDos, setCornerstoneDos] = useState({});
 
-    // Walkthrough state
-    const [showWalkthrough, setShowWalkthrough] = useState(false);
-
-    // Show walkthrough for first-time users
+    // Redirect if not authenticated or email not verified
     useEffect(() => {
-        if (profile && !profile.walkthroughCompleted && !authLoading) {
-            const timer = setTimeout(() => setShowWalkthrough(true), 800);
-            return () => clearTimeout(timer);
-        }
-    }, [profile, authLoading]);
-
-    async function handleWalkthroughComplete() {
-        setShowWalkthrough(false);
-        try {
-            await api.patch('/v1/auth/me', { walkthroughCompleted: true });
-        } catch (err) {
-            console.error('Failed to save walkthrough status:', err);
-        }
-    }
-
-    // Redirect if not authenticated
-    useEffect(() => {
-        if (!authLoading && !isAuthenticated) {
+        if (authLoading) return;
+        if (!isAuthenticated) {
             router.push('/login');
+        } else if (!emailVerified) {
+            router.push('/verify-email');
         }
-    }, [authLoading, isAuthenticated, router]);
+    }, [authLoading, isAuthenticated, emailVerified, router]);
 
     // Fetch daily dose
     const fetchDose = useCallback(async () => {
@@ -290,7 +273,7 @@ export default function DashboardPage() {
                 {menuOpen && (
                     <nav className={styles.menu}>
                         <Link href="/dashboard" className={styles.menuItem} onClick={() => setMenuOpen(false)}>My Wellness</Link>
-                        <Link href="/community" className={styles.menuItem} onClick={() => setMenuOpen(false)}>Community</Link>
+                        <Link href="/community" className={styles.menuItem} onClick={() => setMenuOpen(false)} data-tour="community-link">Community</Link>
                         <Link href="/report" className={styles.menuItem} onClick={() => setMenuOpen(false)} data-tour="report-link">My Report</Link>
                         <Link href="/settings" className={styles.menuItem} onClick={() => setMenuOpen(false)} data-tour="settings-link">Settings</Link>
                         <button className={styles.menuLogout} onClick={() => { logout(); setMenuOpen(false); }}>Sign Out</button>
@@ -466,7 +449,7 @@ export default function DashboardPage() {
 
                     {/* ─── Other Cornerstones Accordion ─── */}
                     {otherCornerstones.length > 0 && (
-                        <section className={styles.section}>
+                        <section className={styles.section} data-tour="other-cornerstones">
                             <button
                                 className={styles.showOther}
                                 onClick={() => setShowOtherCornerstones(!showOtherCornerstones)}
@@ -483,7 +466,15 @@ export default function DashboardPage() {
                                         <div key={c.id} className={`card ${styles.cornerstoneCard}`}>
                                             <button
                                                 className={styles.cornerstoneHeader}
-                                                onClick={() => setExpandedCornerstone(expandedCornerstone === c.id ? null : c.id)}
+                                                onClick={() => {
+                                                    const newId = expandedCornerstone === c.id ? null : c.id;
+                                                    setExpandedCornerstone(newId);
+                                                    if (newId && cornerstoneDos[newId] === undefined) {
+                                                        api.get(`/v1/content/daily-dos/${newId}`)
+                                                            .then(data => setCornerstoneDos(prev => ({ ...prev, [newId]: data.dos || [] })))
+                                                            .catch(() => setCornerstoneDos(prev => ({ ...prev, [newId]: [] })));
+                                                    }
+                                                }}
                                             >
                                                 <span className={styles.cornerstoneIcon}>
                                                     {getCornerstoneIcon(c.id)}
@@ -497,7 +488,33 @@ export default function DashboardPage() {
                                             </button>
                                             {expandedCornerstone === c.id && (
                                                 <div className={styles.cornerstoneBody}>
-                                                    <p>{c.description || 'More details coming soon.'}</p>
+                                                    {c.description && <p className={styles.focusDesc}>{c.description}</p>}
+                                                    {cornerstoneDos[c.id] === undefined ? (
+                                                        <p className={styles.doseLoading}>Loading tasks...</p>
+                                                    ) : cornerstoneDos[c.id].length === 0 ? (
+                                                        <p className={styles.emptyDos}>No tasks for this cornerstone yet.</p>
+                                                    ) : (
+                                                        <ul className={styles.dosList}>
+                                                            {cornerstoneDos[c.id].map(d => (
+                                                                <li key={d.id} className={styles.doItem}>
+                                                                    <button
+                                                                        className={`${styles.doCheck} ${completedDoIds.has(d.id) ? styles.doChecked : ''}`}
+                                                                        onClick={() => handleToggleDo(d.id, d.category || c.id)}
+                                                                        aria-label={`${completedDoIds.has(d.id) ? 'Uncheck' : 'Check'} ${d.text}`}
+                                                                    >
+                                                                        {completedDoIds.has(d.id) && (
+                                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                                                                <polyline points="20 6 9 17 4 12" />
+                                                                            </svg>
+                                                                        )}
+                                                                    </button>
+                                                                    <span className={`${styles.doText} ${completedDoIds.has(d.id) ? styles.doTextDone : ''}`}>
+                                                                        {d.text}
+                                                                    </span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
@@ -508,9 +525,6 @@ export default function DashboardPage() {
                     )}
                 </div>
             </main>
-            {showWalkthrough && (
-                <WalkthroughOverlay onComplete={handleWalkthroughComplete} />
-            )}
         </>
     );
 }

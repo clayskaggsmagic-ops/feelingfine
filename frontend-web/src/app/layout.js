@@ -1,6 +1,7 @@
 import './globals.css';
 import Providers from './providers';
 import MobileNav from '@/components/MobileNav';
+import WalkthroughWrapper from '@/components/WalkthroughWrapper';
 
 export const metadata = {
   title: 'Feeling Fine — Your Daily Wellness Journey',
@@ -14,6 +15,7 @@ export default function RootLayout({ children }) {
         <Providers>
           {children}
           <MobileNav />
+          <WalkthroughWrapper />
         </Providers>
       </body>
     </html>

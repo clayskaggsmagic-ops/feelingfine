@@ -45,11 +45,7 @@ gcloud run deploy feelingfine-api \
   --region us-central1 \
   --platform managed \
   --allow-unauthenticated \
-  --set-env-vars "NODE_ENV=production" \
-  --set-env-vars "FIREBASE_PROJECT_ID=feelingfine-b4106" \
-  --set-env-vars "RESEND_API_KEY=re_YOUR_KEY_HERE" \
-  --set-env-vars "FROM_EMAIL=Art <art@feelingfine.org>" \
-  --set-env-vars "GEMINI_API_KEY=YOUR_GEMINI_KEY"
+  --set-env-vars "NODE_ENV=production,FIREBASE_PROJECT_ID=feelingfine-b4106,CORS_ALLOWED_ORIGINS=https://feelingfine.org;https://www.feelingfine.org;https://feelingfine-web.web.app;https://admin.feelingfine.org;https://feelingfine-admin.web.app,RESEND_API_KEY=re_ULaTvF1D_79SjjRKKXYmDSrToDNwpTbFv,FROM_EMAIL=Art <art@feelingfine.org>,GEMINI_API_KEY=AIzaSyCCfWXXcStIocOaXvx6B_3rtdJMMfJE0qY"
 ```
 
 After deploy, Cloud Run gives you a URL like:
@@ -233,12 +229,13 @@ gcloud run services update feelingfine-api \
 
 | Variable              | Description                        | Example                              |
 |-----------------------|------------------------------------|--------------------------------------|
-| `PORT`                | Server port                        | `3001`                               |
+| `PORT`                | Server port (auto-set on Cloud Run)| `3001` (local only)                  |
 | `NODE_ENV`            | Environment                        | `production`                         |
 | `FIREBASE_PROJECT_ID` | Firebase project                   | `feelingfine-b4106`                 |
-| `RESEND_API_KEY`      | Resend email API key               | `re_xxxxx`                          |
+| `CORS_ALLOWED_ORIGINS`| Allowed CORS origins (`;` or `,` separated) | `https://feelingfine.org;...` |
+| `RESEND_API_KEY`      | Resend email API key               | `re_ULaTvF1D_...`                   |
 | `FROM_EMAIL`          | Sender email address               | `Art <art@feelingfine.org>`         |
-| `GEMINI_API_KEY`      | Google Gemini API key              | `AIzaSy...`                         |
+| `GEMINI_API_KEY`      | Google Gemini API key              | `AIzaSyCCf...`                      |
 
 ### Frontend (.env.production)
 

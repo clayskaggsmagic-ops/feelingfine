@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
-import { getDateKey, calculateProgramDay } from '../services/programService.js';
+import { getDateKey, calculateProgramDay, getNow } from '../services/programService.js';
 import {
     getTrackingDay,
     upsertTrackingDay,
@@ -75,7 +75,7 @@ router.get('/today', requireAuth, async (req, res, next) => {
 router.get('/history', requireAuth, async (req, res, next) => {
     try {
         const days = Math.min(parseInt(req.query.days) || 30, 90);
-        const startDate = new Date();
+        const startDate = getNow();
         startDate.setDate(startDate.getDate() - days);
         const startKey = getDateKey(startDate);
 
@@ -238,7 +238,7 @@ router.get('/report', requireAuth, async (req, res, next) => {
             : null;
 
         // Trend: compare last 7 days avg vs previous 7 days avg
-        const now = new Date();
+        const now = getNow();
         const last7Start = getDateKey(new Date(now.getTime() - 7 * 86400000));
         const prev7Start = getDateKey(new Date(now.getTime() - 14 * 86400000));
 

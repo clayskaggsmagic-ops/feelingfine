@@ -79,7 +79,7 @@ export async function insert(table, row) {
 
 // User
 export async function getUserByUid(uid) {
-    const data = await query(`query($uid: String!) { user(id: $uid) { id email displayName firstName lastName role programStartDate labels fontSizeMultiplier emailOptIn dailyReminder weeklyReport challengeAlerts provider photoURL walkthroughCompleted createdAt updatedAt } }`, { uid });
+    const data = await query(`query($uid: String!) { user(id: $uid) { id email displayName firstName lastName role programStartDate labels fontSizeMultiplier emailOptIn dailyReminder weeklyReport challengeAlerts provider timezone photoURL walkthroughCompleted createdAt updatedAt } }`, { uid });
     return data.user;
 }
 
@@ -92,7 +92,7 @@ export async function deleteUser(uid) {
 }
 
 export async function updateUser(uid, updates) {
-    return mutate(`mutation($id: String!, $displayName: String, $firstName: String, $lastName: String, $fontSizeMultiplier: Float, $emailOptIn: Boolean, $dailyReminder: Boolean, $weeklyReport: Boolean, $challengeAlerts: Boolean, $labels: [String!], $programStartDate: Date) {
+    return mutate(`mutation($id: String!, $displayName: String, $firstName: String, $lastName: String, $fontSizeMultiplier: Float, $emailOptIn: Boolean, $dailyReminder: Boolean, $weeklyReport: Boolean, $challengeAlerts: Boolean, $labels: [String!], $programStartDate: Date, $timezone: String) {
       user_update(id: $id, data: {
         displayName: $displayName
         firstName: $firstName
@@ -104,6 +104,7 @@ export async function updateUser(uid, updates) {
         challengeAlerts: $challengeAlerts
         labels: $labels
         programStartDate: $programStartDate
+        timezone: $timezone
         updatedAt_expr: "request.time"
       })
     }`, { id: uid, ...updates });
@@ -285,6 +286,12 @@ export async function getAppSettings() {
 export async function getEmailTemplate(templateId) {
     const data = await query(`query($id: String!) { emailTemplate(id: $id) { id name subject htmlBody textBody isActive } }`, { id: templateId });
     return data.emailTemplate;
+}
+
+// Email-eligible users (emailOptIn not set to false)
+export async function getEmailEligibleUsers() {
+    const data = await query(`query { users(where: { emailOptIn: { ne: false } }) { id email displayName programStartDate timezone } }`);
+    return data.users || [];
 }
 
 // ─── Export raw dataConnect instance for advanced use ────────────────────────

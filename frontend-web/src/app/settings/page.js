@@ -17,6 +17,7 @@ export default function SettingsPage() {
     const [weeklyReport, setWeeklyReport] = useState(true);
     const [challengeAlerts, setChallengeAlerts] = useState(true);
     const [fontSizeMultiplier, setFontSizeMultiplier] = useState(1.0);
+    const [timezone, setTimezone] = useState('');
     const [saving, setSaving] = useState(false);
     const [toast, setToast] = useState('');
 
@@ -30,6 +31,7 @@ export default function SettingsPage() {
             setWeeklyReport(profile.weeklyReport !== false);
             setChallengeAlerts(profile.challengeAlerts !== false);
             setFontSizeMultiplier(profile.fontSizeMultiplier || 1.0);
+            setTimezone(profile.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York');
         }
     }, [profile]);
 
@@ -51,6 +53,7 @@ export default function SettingsPage() {
                 weeklyReport,
                 challengeAlerts,
                 fontSizeMultiplier,
+                timezone,
             });
             await refreshProfile();
             showToast('Settings saved successfully.');
@@ -133,6 +136,13 @@ export default function SettingsPage() {
                 {/* Notifications */}
                 <section className={styles.card}>
                     <h2 className={styles.sectionTitle}>Notifications</h2>
+
+                    <div className={styles.toggle}>
+                        <div>
+                            <span className={styles.toggleLabel}>Your timezone</span>
+                            <p className={styles.toggleHint}>{timezone.replace(/_/g, ' ')}</p>
+                        </div>
+                    </div>
 
                     <label className={styles.toggle}>
                         <div>

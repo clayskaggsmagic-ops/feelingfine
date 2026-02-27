@@ -26,7 +26,7 @@
     bottom: 1.5rem;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 10002;
+    z-index: 10010;
     pointer-events: auto;
     max-width: 420px;
     width: calc(100vw - 2rem);

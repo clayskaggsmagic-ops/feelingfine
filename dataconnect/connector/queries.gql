@@ -8,7 +8,7 @@ query GetUserByUid($uid: String!) @auth(level: NO_ACCESS) {
     id email displayName firstName lastName role
     programStartDate labels fontSizeMultiplier
     emailOptIn dailyReminder weeklyReport challengeAlerts
-    provider photoURL walkthroughCompleted createdAt updatedAt
+    provider timezone photoURL walkthroughCompleted createdAt updatedAt
   }
 }
 
@@ -115,7 +115,13 @@ query GetAppSettings @auth(level: NO_ACCESS) {
   }
 }
 
-# ── Email Templates ──────────────────────────────────────────────────────────
+# ── Email Queries ────────────────────────────────────────────────────────────
+
+query ListEmailEligibleUsers @auth(level: NO_ACCESS) {
+  users(where: { emailOptIn: { ne: false } }) {
+    id email displayName programStartDate timezone
+  }
+}
 
 query GetEmailTemplate($templateId: String!) @auth(level: NO_ACCESS) {
   emailTemplate(id: $templateId) {

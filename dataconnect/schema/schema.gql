@@ -20,6 +20,7 @@ type User @table {
   weeklyReport: Boolean @default(expr: "true")
   challengeAlerts: Boolean @default(expr: "true")
   provider: String @col(dataType: "varchar(30)")
+  timezone: String @col(dataType: "varchar(50)")
   photoURL: String
   walkthroughCompleted: Boolean @default(expr: "false")
   createdAt: Timestamp! @default(expr: "request.time")

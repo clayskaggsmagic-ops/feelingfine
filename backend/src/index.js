@@ -18,10 +18,11 @@ const PORT = process.env.PORT || 3001;
 // Security headers
 app.use(helmet());
 
-// CORS — allow configured origins
+// CORS — allow configured origins (supports both , and ; delimiters)
 const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:3000')
-    .split(',')
-    .map(o => o.trim());
+    .split(/[,;]/)
+    .map(o => o.trim())
+    .filter(Boolean);
 
 app.use(cors({
     origin(origin, callback) {
@@ -89,9 +90,8 @@ app.use((_req, res) => {
 // Global error handler
 app.use(errorHandler);
 
-// ---------------------------------------------------------------------------
-// Start
-// ---------------------------------------------------------------------------
+// Initialize daily email cron job
+import { initDailyEmailJob } from './jobs/dailyEmailJob.js';
 
 app.listen(PORT, () => {
     console.log(`\n  Feeling Fine API`);
@@ -100,6 +100,9 @@ app.listen(PORT, () => {
     console.log(`  Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`  CORS:        ${allowedOrigins.join(', ')}`);
     console.log(`  Health:      http://localhost:${PORT}/health\n`);
+
+    // Start cron jobs after server is ready
+    initDailyEmailJob();
 });
 
 export default app;

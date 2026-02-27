@@ -11,7 +11,7 @@ const ADMIN_EMAILS = ['clayskaggsmagic@gmail.com'];
 /**
  * Build a default user profile row for PostgreSQL.
  */
-function buildUserProfile({ uid, email, displayName, photoURL = null, provider = 'email' }) {
+function buildUserProfile({ uid, email, displayName, photoURL = null, provider = 'email', timezone = null }) {
     const role = ADMIN_EMAILS.includes(email) ? 'admin' : 'user';
     if (role === 'admin') {
         console.log(`[auth] Admin account detected: ${email}`);
@@ -26,6 +26,7 @@ function buildUserProfile({ uid, email, displayName, photoURL = null, provider =
         role,
         provider,
         photoURL,
+        timezone: timezone || 'America/New_York',
         programStartDate: null,
         labels: [],
         fontSizeMultiplier: 1.0,
@@ -38,7 +39,7 @@ function buildUserProfile({ uid, email, displayName, photoURL = null, provider =
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/signup', async (req, res, next) => {
     try {
-        const { idToken, displayName } = req.body;
+        const { idToken, displayName, timezone } = req.body;
 
         if (!idToken) {
             console.warn('[auth/signup] Missing idToken in request body');
@@ -61,6 +62,7 @@ router.post('/signup', async (req, res, next) => {
             email: decoded.email,
             displayName: displayName || decoded.name || null,
             photoURL: decoded.picture || null,
+            timezone,
         });
 
         await upsertUser(profile);
@@ -209,6 +211,7 @@ router.patch('/me', requireAuth, async (req, res, next) => {
             'emailOptIn', 'dailyReminder', 'weeklyReport', 'challengeAlerts',
             'fontSizeMultiplier',
             'programStartDate', 'labels',
+            'walkthroughCompleted',
         ];
 
         const updates = {};

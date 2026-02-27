@@ -26,11 +26,12 @@ function InviteContent() {
     const [accepted, setAccepted] = useState(false);
 
     useEffect(() => {
+        if (authLoading) return; // Wait for auth state to settle
         if (!code) { setError('No invite code provided'); return; }
         api.get(`/v1/community/invite/${code}`)
             .then(setInvite)
             .catch(err => setError(err.message || 'Invite not found or expired'));
-    }, [code]);
+    }, [code, authLoading]);
 
     async function handleAccept() {
         setAccepting(true);

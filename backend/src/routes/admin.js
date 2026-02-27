@@ -430,5 +430,53 @@ router.delete('/webinars/:id', requireAuth, requireAdmin, async (req, res, next)
     } catch (err) { next(err); }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// TRIGGER DAILY EMAIL (for Cloud Scheduler or manual use)
+// ─────────────────────────────────────────────────────────────────────────────
+import { runDailyEmail } from '../jobs/dailyEmailJob.js';
+
+router.post('/trigger-email', requireAuth, requireAdmin, async (req, res, next) => {
+    try {
+        console.log('[admin/trigger-email] Manual trigger by:', req.user.email);
+        const result = await runDailyEmail();
+        res.json({ success: true, ...result });
+    } catch (err) {
+        console.error('[admin/trigger-email] Error:', err.message);
+        next(err);
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DEV: DAY SIMULATION (time-travel for rapid testing)
+// ─────────────────────────────────────────────────────────────────────────────
+import { getDayOffset, setDayOffset, getNow } from '../services/programService.js';
+
+router.get('/dev/day-offset', requireAuth, requireAdmin, (_req, res) => {
+    const offset = getDayOffset();
+    res.json({ dayOffset: offset, simulatedDate: getNow().toISOString().split('T')[0] });
+});
+
+router.post('/dev/day-offset', requireAuth, requireAdmin, (req, res) => {
+    const { dayOffset } = req.body;
+    if (typeof dayOffset !== 'number' || !Number.isInteger(dayOffset)) {
+        return res.status(400).json({ error: 'dayOffset must be an integer' });
+    }
+    setDayOffset(dayOffset);
+    console.log(`[admin/dev] Day offset set to ${dayOffset} by ${req.user.email}`);
+
+    // Fire-and-forget: send the daily email for the simulated day
+    runDailyEmail({ skipTimeCheck: true }).catch(err =>
+        console.error('[admin/dev] Email trigger failed:', err.message)
+    );
+
+    res.json({ dayOffset, simulatedDate: getNow().toISOString().split('T')[0], emailTriggered: true });
+});
+
+router.delete('/dev/day-offset', requireAuth, requireAdmin, (_req, res) => {
+    setDayOffset(0);
+    console.log('[admin/dev] Day offset reset to 0');
+    res.json({ dayOffset: 0, simulatedDate: getNow().toISOString().split('T')[0] });
+});
+
 export default router;
 

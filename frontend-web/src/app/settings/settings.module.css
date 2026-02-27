@@ -164,6 +164,9 @@
     opacity: 0;
     width: 0;
     height: 0;
+    min-width: 0;
+    min-height: 0;
+    position: absolute;
 }
 
 .slider {

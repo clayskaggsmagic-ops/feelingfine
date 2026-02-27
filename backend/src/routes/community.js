@@ -166,7 +166,7 @@ function generateCode() {
     return code;
 }
 
-// Create an invite link
+// Create an invite link (idempotent — returns existing unexpired invite if one exists)
 router.post('/invite', requireAuth, async (req, res, next) => {
     try {
         const { type, groupId } = req.body; // type: 'friend' | 'group'
@@ -175,6 +175,21 @@ router.post('/invite', requireAuth, async (req, res, next) => {
         }
         if (type === 'group' && !groupId) {
             return res.status(400).json({ error: 'groupId required for group invites' });
+        }
+
+        // Check for existing unexpired invite of same type by this user
+        const existing = await query(
+            `query($uid: String!, $type: String!) { invitations(where: { createdById: { eq: $uid }, type: { eq: $type } }) { id code expiresAt groupId } }`,
+            { uid: req.user.uid, type }
+        );
+        const validExisting = (existing.invitations || []).find(inv => {
+            if (inv.expiresAt && new Date(inv.expiresAt) < new Date()) return false;
+            if (type === 'group' && inv.groupId !== groupId) return false;
+            return true;
+        });
+        if (validExisting) {
+            console.log(`[invite] Returning existing ${type} invite: ${validExisting.code} for ${req.user.uid}`);
+            return res.status(200).json({ code: validExisting.code, type });
         }
 
         const code = generateCode();
@@ -190,21 +205,29 @@ router.post('/invite', requireAuth, async (req, res, next) => {
 
         console.log(`[invite] Created ${type} invite: ${code} by ${req.user.uid}`);
         res.status(201).json({ code, type });
-    } catch (err) { next(err); }
+    } catch (err) {
+        console.error(`[invite] Error creating invite:`, err.message);
+        next(err);
+    }
 });
 
 // Look up an invite (public — no auth required)
 router.get('/invite/:code', async (req, res, next) => {
     try {
+        console.log(`[invite] Looking up invite code: ${req.params.code}`);
         const result = await query(
             `query($code: String!) { invitations(where: { code: { eq: $code } }) { id code type groupId expiresAt createdBy { displayName photoURL } } }`,
             { code: req.params.code }
         );
         const invite = result.invitations?.[0];
-        if (!invite) return res.status(404).json({ error: 'Invite not found' });
+        if (!invite) {
+            console.log(`[invite] Code not found: ${req.params.code}`);
+            return res.status(404).json({ error: 'Invite not found' });
+        }
 
         // Check expiration
         if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
+            console.log(`[invite] Expired invite: ${req.params.code}`);
             return res.status(410).json({ error: 'This invite has expired' });
         }
 
@@ -225,20 +248,29 @@ router.get('/invite/:code', async (req, res, next) => {
             response.groupDescription = groupResult.communityGroup?.description || '';
         }
 
+        console.log(`[invite] Found ${invite.type} invite from ${response.creatorName}`);
         res.json(response);
-    } catch (err) { next(err); }
+    } catch (err) {
+        console.error(`[invite] Error looking up invite:`, err.message);
+        next(err);
+    }
 });
 
-// Accept an invite
+// Accept an invite (with duplicate-friendship guard)
 router.post('/invite/:code/accept', requireAuth, async (req, res, next) => {
     try {
         const uid = req.user.uid;
+        console.log(`[invite] User ${uid} accepting invite: ${req.params.code}`);
+
         const result = await query(
             `query($code: String!) { invitations(where: { code: { eq: $code } }) { id code type groupId createdById expiresAt } }`,
             { code: req.params.code }
         );
         const invite = result.invitations?.[0];
-        if (!invite) return res.status(404).json({ error: 'Invite not found' });
+        if (!invite) {
+            console.log(`[invite] Accept failed — code not found: ${req.params.code}`);
+            return res.status(404).json({ error: 'Invite not found' });
+        }
 
         if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
             return res.status(410).json({ error: 'This invite has expired' });
@@ -250,6 +282,20 @@ router.post('/invite/:code/accept', requireAuth, async (req, res, next) => {
         }
 
         if (invite.type === 'friend') {
+            // Check for existing friendship (either direction) to prevent duplicates
+            const existingCheck = await query(
+                `query($uid1: String!, $uid2: String!) { friendRequests(where: { or: [
+                    { fromUserId: { eq: $uid1 }, toUserId: { eq: $uid2 } },
+                    { fromUserId: { eq: $uid2 }, toUserId: { eq: $uid1 } }
+                ] }) { id status } }`,
+                { uid1: invite.createdById, uid2: uid }
+            );
+            const alreadyFriends = (existingCheck.friendRequests || []).some(r => r.status === 'accepted');
+            if (alreadyFriends) {
+                console.log(`[invite] Already friends — skipping duplicate: ${invite.code}`);
+                return res.json({ success: true, type: 'friend', message: 'You are already friends!' });
+            }
+
             // Create accepted friend request (skip pending)
             await mutate(
                 `mutation($data: FriendRequest_Data!) { friendRequest_insert(data: $data) { id } }`,
@@ -258,6 +304,16 @@ router.post('/invite/:code/accept', requireAuth, async (req, res, next) => {
             console.log(`[invite] Friend invite ${invite.code} accepted by ${uid}`);
             res.json({ success: true, type: 'friend', message: 'Friend added!' });
         } else if (invite.type === 'group') {
+            // Check for existing membership to prevent duplicates
+            const memberCheck = await query(
+                `query($gid: UUID!, $uid: String!) { groupMembers(where: { groupId: { eq: $gid }, userId: { eq: $uid } }) { id } }`,
+                { gid: invite.groupId, uid }
+            );
+            if ((memberCheck.groupMembers || []).length > 0) {
+                console.log(`[invite] Already a member — skipping duplicate: ${invite.code}`);
+                return res.json({ success: true, type: 'group', message: 'You are already in this group!' });
+            }
+
             await mutate(
                 `mutation($data: GroupMember_Data!) { groupMember_insert(data: $data) { id } }`,
                 { data: { groupId: invite.groupId, userId: uid } }
@@ -265,7 +321,10 @@ router.post('/invite/:code/accept', requireAuth, async (req, res, next) => {
             console.log(`[invite] Group invite ${invite.code} accepted by ${uid}`);
             res.json({ success: true, type: 'group', message: 'Joined the group!' });
         }
-    } catch (err) { next(err); }
+    } catch (err) {
+        console.error(`[invite] Error accepting invite:`, err.message);
+        next(err);
+    }
 });
 
 export default router;

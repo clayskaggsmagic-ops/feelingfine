@@ -26,14 +26,18 @@ export default function SignupPage() {
 
     async function createBackendProfile(firebaseUser, displayName) {
         const idToken = await firebaseUser.getIdToken();
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
         await api.post('/v1/auth/signup', {
             idToken,
             displayName: displayName || firebaseUser.displayName || '',
+            timezone,
         });
         // Auto-accept pending invite (from /invite page)
         const pendingInvite = localStorage.getItem('pendingInvite');
         if (pendingInvite) {
             try {
+                // Force-refresh token so the backend sees a valid, up-to-date auth header
+                await firebaseUser.getIdToken(true);
                 await api.post(`/v1/community/invite/${pendingInvite}/accept`);
                 console.log('[signup] Auto-accepted invite:', pendingInvite);
             } catch (err) {

@@ -16,9 +16,14 @@ async function apiFetch(path, options = {}) {
         ...options.headers,
     };
 
-    if (user) {
-        const token = await user.getIdToken();
-        headers['Authorization'] = `Bearer ${token}`;
+    try {
+        if (user) {
+            const token = await user.getIdToken();
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+    } catch (err) {
+        // Token retrieval can fail during auth initialization — proceed without auth
+        console.warn('[api] Could not get auth token, proceeding without:', err.message);
     }
 
     const url = `${API_BASE}${path}`;

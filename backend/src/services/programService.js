@@ -16,6 +16,18 @@ import {
     getDosByCategory,
 } from './dataConnect.js';
 
+// ─── Dev Day Offset (server-side only) ──────────────────────────────────────
+// Shifts "now" by N days for rapid day-by-day testing from the admin portal.
+// Resets to 0 on server restart (safe default).
+let _dayOffset = 0;
+export function setDayOffset(offset) { _dayOffset = offset; }
+export function getDayOffset() { return _dayOffset; }
+export function getNow() {
+    const d = new Date();
+    if (_dayOffset) d.setDate(d.getDate() + _dayOffset);
+    return d;
+}
+
 // ─── Cornerstone Helpers ────────────────────────────────────────────────────
 
 // Cached in-memory after first load from DB
@@ -32,7 +44,7 @@ async function getCornerstones() {
 export function calculateProgramDay(user) {
     if (!user.programStartDate) return 0;
     const start = new Date(user.programStartDate);
-    const now = new Date();
+    const now = getNow();
     return Math.floor((now - start) / (1000 * 60 * 60 * 24)) + 1;
 }
 
@@ -43,7 +55,7 @@ export async function getFocusedCornerstone(programDay) {
     return cornerstones[idx];
 }
 
-export function getDateKey(date = new Date()) {
+export function getDateKey(date = getNow()) {
     return date.toISOString().split('T')[0];
 }
 

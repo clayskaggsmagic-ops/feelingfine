@@ -4,7 +4,7 @@
 
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
-import { query, mutate } from '../services/dataConnect.js';
+import { query, mutate, insert } from '../services/dataConnect.js';
 
 const router = Router();
 
@@ -180,19 +180,10 @@ router.post('/invite', requireAuth, async (req, res, next) => {
         const code = generateCode();
         const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 days
 
-        // Use individual variables — Data Connect doesn't support complex _Data types via admin SDK
-        const gql = groupId
-            ? `mutation($code: String!, $type: String!, $createdById: String!, $expiresAt: Timestamp!, $groupId: UUID!) {
-                 invitation_insert(data: { code: $code, type: $type, createdById: $createdById, expiresAt: $expiresAt, groupId: $groupId }) { id }
-               }`
-            : `mutation($code: String!, $type: String!, $createdById: String!, $expiresAt: Timestamp!) {
-                 invitation_insert(data: { code: $code, type: $type, createdById: $createdById, expiresAt: $expiresAt }) { id }
-               }`;
+        const row = { code, type, createdById: req.user.uid, expiresAt };
+        if (groupId) row.groupId = groupId;
 
-        const vars = { code, type, createdById: req.user.uid, expiresAt };
-        if (groupId) vars.groupId = groupId;
-
-        await mutate(gql, vars);
+        await insert('invitation', row);
 
         console.log(`[invite] Created ${type} invite: ${code} by ${req.user.uid}`);
         res.status(201).json({ code, type });

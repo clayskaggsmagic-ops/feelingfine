@@ -1,16 +1,5 @@
-/**
- * Daily Email Job — Sends the daily wellness email to users at 10 AM their local time.
- *
- * Strategy: Cron runs EVERY HOUR. Each run checks which IANA timezones
- * currently have 10:00 AM, then sends emails only to those users.
- * This handles DST automatically since we use IANA timezone names.
- *
- * Start with: import { initDailyEmailJob } from './jobs/dailyEmailJob.js' in index.js
- * Requires: RESEND_API_KEY environment variable.
- */
-
-import { getEmailEligibleUsers, getEmailTemplate } from '../services/dataConnect.js';
-import { sendBatch } from '../services/emailService.js';
+import { getEmailEligibleUsers, getEmailTemplate, getDoseByDayNumber } from '../services/dataConnect.js';
+import { sendBatch, sendEmail } from '../services/emailService.js';
 import { getNow } from '../services/programService.js';
 
 // Run every hour at :00
@@ -21,6 +10,24 @@ const TARGET_HOUR = 10; // 10:00 AM
 
 // Default timezone for users who don't have one set
 const DEFAULT_TIMEZONE = 'America/New_York';
+
+const APP_URL = 'https://feelingfine.org/dashboard';
+
+/**
+ * Replace all template placeholders in a string.
+ */
+function fillTemplate(str, vars) {
+    if (!str) return '';
+    return str
+        .replace(/\{\{userName\}\}/g, vars.userName)
+        .replace(/\{\{name\}\}/g, vars.userName)
+        .replace(/\{\{programDay\}\}/g, vars.programDay)
+        .replace(/\{\{day\}\}/g, vars.programDay)
+        .replace(/\{\{doseMessage\}\}/g, vars.doseMessage)
+        .replace(/\{\{adminMessage\}\}/g, vars.adminMessage)
+        .replace(/\{\{appUrl\}\}/g, vars.appUrl)
+        .replace(/\{\{unsubscribeUrl\}\}/g, vars.unsubscribeUrl);
+}
 
 /**
  * Check if a given IANA timezone is currently at the target hour.
@@ -36,30 +43,23 @@ function isTargetHour(timezone, targetHour = TARGET_HOUR) {
         const localHour = parseInt(formatter.format(now), 10);
         return localHour === targetHour;
     } catch {
-        // Invalid timezone — skip
         return false;
     }
 }
 
 /**
  * Run the daily email job.
- * @param {Object} [options]
- * @param {boolean} [options.skipTimeCheck] - If true, skip the 10 AM timezone
- *        filter and send to ALL eligible users. Used by the dev day-advance tool.
  */
 export async function runDailyEmail({ skipTimeCheck = false } = {}) {
     console.log(`[dailyEmail] Starting email check... (skipTimeCheck: ${skipTimeCheck})`);
 
     try {
-        // 1. Get all active users with email opt-in
         const allUsers = await getEmailEligibleUsers();
-
         if (allUsers.length === 0) {
             console.log('[dailyEmail] No eligible users — skipping');
             return { sent: 0, failed: 0, total: 0 };
         }
 
-        // 2. Filter to users whose local time is currently 10 AM (skip in dev mode)
         const users = skipTimeCheck
             ? allUsers
             : allUsers.filter(user => {
@@ -72,38 +72,42 @@ export async function runDailyEmail({ skipTimeCheck = false } = {}) {
             return { sent: 0, failed: 0, total: 0, skipped: 'no users at target hour' };
         }
 
-        console.log(`[dailyEmail] ${users.length} users to email${skipTimeCheck ? ' (dev: all users)' : ` at ${TARGET_HOUR}:00 AM`}`);
+        console.log(`[dailyEmail] ${users.length} users to email`);
 
-        // 3. Get the daily email template
         const template = await getEmailTemplate('daily');
-
         if (!template || !template.isActive) {
             console.warn('[dailyEmail] No active "daily" email template found — skipping');
             return { sent: 0, failed: 0, total: users.length, error: 'No active template' };
         }
 
-        // 4. Build personalized emails
-        const recipients = users.map(user => {
+        // Build personalized emails with actual dose content
+        const recipients = [];
+        for (const user of users) {
             const daysSinceStart = user.programStartDate
                 ? Math.floor((getNow().getTime() - new Date(user.programStartDate).getTime()) / 86400000)
                 : 1;
             const programDay = Math.max(1, daysSinceStart);
 
-            return {
-                to: user.email,
-                subject: (template.subject || 'Your Daily Dose')
-                    .replace(/\{\{name\}\}/g, user.displayName || 'Friend')
-                    .replace(/\{\{day\}\}/g, programDay),
-                html: (template.htmlBody || '')
-                    .replace(/\{\{name\}\}/g, user.displayName || 'Friend')
-                    .replace(/\{\{day\}\}/g, programDay),
-                text: (template.textBody || '')
-                    .replace(/\{\{name\}\}/g, user.displayName || 'Friend')
-                    .replace(/\{\{day\}\}/g, programDay),
-            };
-        });
+            // Fetch the actual daily dose for this user's program day
+            const dose = await getDoseByDayNumber(programDay);
 
-        // 5. Send in batches
+            const vars = {
+                userName: user.displayName || 'Friend',
+                programDay: String(programDay),
+                doseMessage: dose?.message || 'Check in with your wellness journey today.',
+                adminMessage: dose?.adminMessage || '',
+                appUrl: APP_URL,
+                unsubscribeUrl: `${APP_URL.replace('/dashboard', '/settings')}`,
+            };
+
+            recipients.push({
+                to: user.email,
+                subject: fillTemplate(template.subject || 'Your Daily Dose — Day {{programDay}}', vars),
+                html: fillTemplate(template.htmlBody || '', vars),
+                text: fillTemplate(template.textBody || '', vars),
+            });
+        }
+
         const results = await sendBatch(recipients);
         const sent = results.filter(r => !r.error).length;
         const failed = results.filter(r => r.error).length;
@@ -118,7 +122,6 @@ export async function runDailyEmail({ skipTimeCheck = false } = {}) {
 
 /**
  * Send the daily dose email to a SINGLE user (used by signup for Day 1 immediate email).
- * @param {object} user - User object with { email, displayName, programStartDate }
  */
 export async function sendDoseEmailToUser(user) {
     try {
@@ -128,24 +131,27 @@ export async function sendDoseEmailToUser(user) {
             return { sent: false, reason: 'No active template' };
         }
 
-        const programDay = 1; // Always Day 1 on signup
+        const programDay = 1;
+        const dose = await getDoseByDayNumber(1);
+
+        const vars = {
+            userName: user.displayName || 'Friend',
+            programDay: '1',
+            doseMessage: dose?.message || 'Welcome to your wellness journey!',
+            adminMessage: dose?.adminMessage || '',
+            appUrl: APP_URL,
+            unsubscribeUrl: `${APP_URL.replace('/dashboard', '/settings')}`,
+        };
 
         const email = {
             to: user.email,
-            subject: (template.subject || 'Your Daily Dose')
-                .replace(/\{\{name\}\}/g, user.displayName || 'Friend')
-                .replace(/\{\{day\}\}/g, programDay),
-            html: (template.htmlBody || '')
-                .replace(/\{\{name\}\}/g, user.displayName || 'Friend')
-                .replace(/\{\{day\}\}/g, programDay),
-            text: (template.textBody || '')
-                .replace(/\{\{name\}\}/g, user.displayName || 'Friend')
-                .replace(/\{\{day\}\}/g, programDay),
+            subject: fillTemplate(template.subject || 'Your Daily Dose — Day 1', vars),
+            html: fillTemplate(template.htmlBody || '', vars),
+            text: fillTemplate(template.textBody || '', vars),
         };
 
-        const { sendEmail } = await import('../services/emailService.js');
         await sendEmail(email);
-        console.log(`[dailyEmail] Welcome dose email sent to ${user.email} (Day 1)`);
+        console.log(`[dailyEmail] Welcome dose email sent to ${user.email} (Day 1, dose: "${dose?.title || 'none'}")`);
         return { sent: true };
     } catch (err) {
         console.error(`[dailyEmail] Failed to send welcome dose to ${user.email}:`, err.message);

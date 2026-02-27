@@ -63,7 +63,7 @@ export async function wellnessChat(message, context = {}) {
     const fullSystemPrompt = SYSTEM_PROMPT + (contextStr ? `\n\n--- User Context ---${contextStr}` : '');
 
     const response = await genai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.5-flash',
         contents: message,
         config: {
             systemInstruction: fullSystemPrompt,
@@ -93,7 +93,7 @@ ${userContext.displayName ? `- Name: ${userContext.displayName}` : ''}
 ${userContext.labels?.length ? `- Focus areas: ${userContext.labels.join(', ')}` : ''}`;
 
     const response = await genai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.5-flash',
         contents: analysisPrompt,
         config: {
             systemInstruction: SYSTEM_PROMPT,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAuth, sendEmailVerification } from 'firebase/auth';
 import { app } from '@/lib/firebase';
@@ -13,19 +13,32 @@ export default function VerifyEmailPage() {
     const router = useRouter();
     const auth = getAuth(app);
 
+    const verifiedRef = useRef(false);
+
     // Poll for email verification every 3 seconds
     useEffect(() => {
+        if (verifiedRef.current) return; // Already verified, don't poll
+
         const interval = setInterval(async () => {
+            if (verifiedRef.current) {
+                clearInterval(interval);
+                return;
+            }
+
             const user = auth.currentUser;
             if (!user) return;
 
-            await user.reload();
+            try {
+                await user.reload();
+            } catch {
+                return; // Reload failed, try again next interval
+            }
 
-            if (user.emailVerified) {
+            if (user.emailVerified && !verifiedRef.current) {
+                verifiedRef.current = true; // Lock — never go back
                 setStatus('verified');
                 clearInterval(interval);
-                // Short delay so user sees the success state
-                setTimeout(() => router.push('/onboarding'), 1200);
+                setTimeout(() => router.push('/onboarding'), 1500);
             }
         }, 3000);
 

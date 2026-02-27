@@ -30,15 +30,33 @@ export default function SettingsPage() {
             setDailyReminder(profile.dailyReminder !== false);
             setWeeklyReport(profile.weeklyReport !== false);
             setChallengeAlerts(profile.challengeAlerts !== false);
-            setFontSizeMultiplier(profile.fontSizeMultiplier || 1.0);
+            // Font size: prefer profile value, fallback to localStorage, then 1.0
+            const savedSize = profile.fontSizeMultiplier
+                || parseFloat(localStorage.getItem('ff-fontSizeMultiplier'))
+                || 1.0;
+            setFontSizeMultiplier(savedSize);
             setTimezone(profile.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York');
         }
     }, [profile]);
 
-    // Live-preview font scaling on settings page
+    // Live-preview font scaling + auto-save when changed
     useEffect(() => {
         document.documentElement.style.fontSize = `${fontSizeMultiplier * 100}%`;
+        // Persist to localStorage immediately as bulletproof backup
+        localStorage.setItem('ff-fontSizeMultiplier', String(fontSizeMultiplier));
     }, [fontSizeMultiplier]);
+
+    // Auto-save font size to backend when user clicks a size button
+    const handleFontSizeChange = useCallback(async (size) => {
+        setFontSizeMultiplier(size);
+        localStorage.setItem('ff-fontSizeMultiplier', String(size));
+        try {
+            await api.patch('/v1/auth/me', { fontSizeMultiplier: size });
+            await refreshProfile();
+        } catch (err) {
+            console.error('[settings] Font size save failed:', err.message);
+        }
+    }, [refreshProfile]);
 
     function showToast(msg) { setToast(msg); setTimeout(() => setToast(''), 3000); }
 
@@ -122,7 +140,7 @@ export default function SettingsPage() {
                         <span>Font Size</span>
                         <div className={styles.fontScale}>
                             {[1.0, 1.25, 1.5].map(s => (
-                                <button key={s} className={`${styles.scaleBtn} ${fontSizeMultiplier === s ? styles.scaleBtnActive : ''}`} onClick={() => setFontSizeMultiplier(s)}>
+                                <button key={s} className={`${styles.scaleBtn} ${fontSizeMultiplier === s ? styles.scaleBtnActive : ''}`} onClick={() => handleFontSizeChange(s)}>
                                     {s}x
                                 </button>
                             ))}

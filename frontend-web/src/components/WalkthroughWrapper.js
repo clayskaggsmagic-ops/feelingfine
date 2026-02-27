@@ -12,7 +12,7 @@ import WalkthroughOverlay from './WalkthroughOverlay';
  * Only shows for authenticated users who haven't completed the walkthrough.
  */
 export default function WalkthroughWrapper() {
-    const { profile, loading, isAuthenticated } = useAuth();
+    const { profile, loading, isAuthenticated, refreshProfile } = useAuth();
     const [show, setShow] = useState(false);
     const pathname = usePathname();
     const hasTriggered = useRef(false);
@@ -46,6 +46,7 @@ export default function WalkthroughWrapper() {
         setShow(false);
         try {
             await api.patch('/v1/auth/me', { walkthroughCompleted: true });
+            await refreshProfile(); // Update in-memory profile so it won't re-trigger
         } catch (err) {
             console.error('Failed to save walkthrough status:', err);
         }

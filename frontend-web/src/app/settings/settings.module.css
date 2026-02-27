@@ -157,6 +157,8 @@
 
 .switch {
     position: relative;
+    display: inline-block;
+    flex-shrink: 0;
     width: 48px;
     height: 26px;
 }

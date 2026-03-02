@@ -286,7 +286,7 @@ export async function getPendingSurveys(uid, programDay) {
     return allSurveys.filter(s => {
         if (completedIds.has(s.id)) return false;
         if (s.type === 'onboarding') return true;
-        if (s.type === 'daily_banner' && s.triggerDay && s.triggerDay <= programDay) return true;
+        if (s.type === 'daily_checkin' && s.triggerDay && s.triggerDay === programDay && programDay >= 2) return true;
         if (s.type === 'weekly' && programDay >= 8) return true;
         return false;
     });

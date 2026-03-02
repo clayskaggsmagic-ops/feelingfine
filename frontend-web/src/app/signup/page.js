@@ -58,7 +58,10 @@ export default function SignupPage() {
             await updateProfile(cred.user, { displayName: name });
             await createBackendProfile(cred.user, name);
             // Send verification email before allowing access
-            await sendEmailVerification(cred.user);
+            await sendEmailVerification(cred.user, {
+                url: `${window.location.origin}/verify-email`,
+                handleCodeInApp: false,
+            });
             router.push('/verify-email');
         } catch (err) {
             console.error('[signup] Error:', err);

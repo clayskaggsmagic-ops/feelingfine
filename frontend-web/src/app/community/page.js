@@ -75,6 +75,7 @@ function FriendsTab({ uid }) {
     const [groupName, setGroupName] = useState('');
     const [groupDesc, setGroupDesc] = useState('');
     const [toast, setToast] = useState('');
+    const [inviteLink, setInviteLink] = useState(''); // visible link for desktop
     // Chat state — opens inline when clicking a friend or group
     const [chatOpen, setChatOpen] = useState(null); // { type: 'friend'|'group', id, name }
     const [messages, setMessages] = useState([]);
@@ -98,9 +99,19 @@ function FriendsTab({ uid }) {
         const param = chatOpen.type === 'group' ? `groupId=${chatOpen.id}` : `friendId=${chatOpen.id}`;
         try {
             const data = await api.get(`/v1/community/messages?${param}`);
-            setMessages(data.messages || []);
+            const fetchedMessages = data.messages || [];
+            setMessages(fetchedMessages);
+
+            // Mark unread messages as read
+            const unreadIds = fetchedMessages
+                .filter(m => m.sender?.id !== uid && (!m.readBy || !m.readBy.includes(user.displayName)))
+                .map(m => m.id);
+
+            if (unreadIds.length > 0) {
+                api.post('/v1/community/messages/read', { messageIds: unreadIds }).catch(() => {});
+            }
         } catch { }
-    }, [chatOpen]);
+    }, [chatOpen, uid, user]);
 
     useEffect(() => {
         fetchMessages();
@@ -154,11 +165,13 @@ function FriendsTab({ uid }) {
         try {
             const { code } = await api.post('/v1/community/invite', { type: 'friend' });
             const url = `${window.location.origin}/invite?code=${code}`;
-            if (navigator.share) {
+            const isMobile = window.matchMedia('(max-width: 768px)').matches;
+            if (isMobile && navigator.share) {
                 await navigator.share({ title: 'Join me on Feeling Fine!', url });
             } else {
+                setInviteLink(url);
                 await navigator.clipboard.writeText(url);
-                showToast('Invite link copied!');
+                showToast('Link copied to clipboard!');
             }
         } catch (err) {
             console.error('[community] inviteFriend error:', err);
@@ -170,13 +183,22 @@ function FriendsTab({ uid }) {
         try {
             const { code } = await api.post('/v1/community/invite', { type: 'group', groupId });
             const url = `${window.location.origin}/invite?code=${code}`;
-            if (navigator.share) {
+            const isMobile = window.matchMedia('(max-width: 768px)').matches;
+            if (isMobile && navigator.share) {
                 await navigator.share({ title: 'Join our group on Feeling Fine!', url });
             } else {
+                setInviteLink(url);
                 await navigator.clipboard.writeText(url);
-                showToast('Group invite link copied!');
+                showToast('Group link copied to clipboard!');
             }
         } catch (err) { showToast('Error creating invite'); }
+    }
+
+    async function copyInviteLink() {
+        try {
+            await navigator.clipboard.writeText(inviteLink);
+            showToast('Copied!');
+        } catch { showToast('Failed to copy'); }
     }
 
     async function sendMessage() {
@@ -201,10 +223,17 @@ function FriendsTab({ uid }) {
                 <h3 style={{ margin: '0.75rem 0' }}>💬 {chatOpen.name}</h3>
                 <div className={styles.chatBox}>
                     {messages.length === 0 ? <p className={styles.emptyMsg}>No messages yet. Say hello!</p> : messages.map(m => (
-                        <div key={m.id} className={`${styles.chatBubble} ${m.sender?.uid === uid ? styles.chatBubbleMine : ''}`}>
+                        <div key={m.id} className={`${styles.chatBubble} ${m.sender?.id === uid ? styles.chatBubbleMine : ''}`}>
                             <span className={styles.chatSender}>{m.sender?.displayName || 'User'}</span>
                             <p>{m.text}</p>
-                            <span className={styles.chatTime}>{new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            <div className={styles.chatMeta}>
+                                <span className={styles.chatTime}>{new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                {m.sender?.id === uid && m.readBy && m.readBy.length > 0 && (
+                                    <span className={styles.chatReadReceipt}>
+                                        Read by {m.readBy.filter(name => name !== user.displayName).join(', ')}
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     ))}
                     <div ref={bottomRef} />
@@ -224,8 +253,20 @@ function FriendsTab({ uid }) {
             {/* Invite a friend */}
             <div className={styles.sectionBox} style={{ marginBottom: '1rem' }}>
                 <button onClick={inviteFriend} className={styles.inviteBtn}>
-                    📩 Invite a Friend
+                    Invite a Friend
                 </button>
+                {inviteLink && (
+                    <div className={styles.inviteLinkRow}>
+                        <input
+                            readOnly
+                            value={inviteLink}
+                            className={styles.inviteLinkInput}
+                            onClick={e => e.target.select()}
+                        />
+                        <button onClick={copyInviteLink} className={styles.copyBtn}>Copy</button>
+                        <button onClick={() => setInviteLink('')} className={styles.closeLinkBtn} aria-label="Close">✕</button>
+                    </div>
+                )}
             </div>
 
             {/* Add friend by ID */}

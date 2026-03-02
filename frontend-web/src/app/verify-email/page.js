@@ -1,30 +1,46 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { getAuth, sendEmailVerification } from 'firebase/auth';
+import { Suspense } from 'react';
 import { app } from '@/lib/firebase';
 import styles from './verify.module.css';
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
     const [error, setError] = useState('');
     const [cooldown, setCooldown] = useState(0);
     const [sent, setSent] = useState(false);
+    const [verified, setVerified] = useState(false);
     const router = useRouter();
+    const searchParams = useSearchParams();
     const auth = getAuth(app);
 
-    // Check verification status: simple poll, redirect via window.location to avoid React issues
+    // Detect if this is the tab opened from the email link.
+    // Firebase's verification email redirects to our continueUrl with mode/oobCode params.
+    // The original signup tab navigates here with NO params.
+    const isNewTab = searchParams.has('mode') || searchParams.has('oobCode') || searchParams.has('lang');
+
+    // Once verified, show success briefly then redirect (only on original tab)
     useEffect(() => {
-        // If already verified on mount, redirect immediately
+        if (!verified || isNewTab) return;
+        const timer = setTimeout(() => {
+            window.location.href = '/onboarding';
+        }, 1500);
+        return () => clearTimeout(timer);
+    }, [verified, isNewTab]);
+
+    // Check verification status via polling
+    useEffect(() => {
+        // If already verified on mount, lock immediately
         const user = auth.currentUser;
         if (user?.emailVerified) {
-            window.location.href = '/onboarding';
+            setVerified(true);
             return;
         }
 
-        // Also store in sessionStorage so we never oscillate
         if (sessionStorage.getItem('ff-email-verified') === 'true') {
-            window.location.href = '/onboarding';
+            setVerified(true);
             return;
         }
 
@@ -36,7 +52,7 @@ export default function VerifyEmailPage() {
                 if (u.emailVerified) {
                     clearInterval(interval);
                     sessionStorage.setItem('ff-email-verified', 'true');
-                    window.location.href = '/onboarding';
+                    setVerified(true);
                 }
             } catch (e) {
                 // ignore reload errors, try again next tick
@@ -44,7 +60,7 @@ export default function VerifyEmailPage() {
         }, 3000);
 
         return () => clearInterval(interval);
-    }, []); // empty deps — run once on mount, never re-create
+    }, []);
 
     // Cooldown timer for resend
     useEffect(() => {
@@ -60,7 +76,10 @@ export default function VerifyEmailPage() {
             return;
         }
         try {
-            await sendEmailVerification(user);
+            await sendEmailVerification(user, {
+                url: `${window.location.origin}/verify-email`,
+                handleCodeInApp: false,
+            });
             setSent(true);
             setCooldown(60);
             setError('');
@@ -73,6 +92,40 @@ export default function VerifyEmailPage() {
         }
     }, [auth]);
 
+    // ─── New tab from email link: just show "close this tab" ───
+    if (isNewTab) {
+        return (
+            <main className={styles.page}>
+                <div className={styles.container}>
+                    <div className={`card ${styles.card}`}>
+                        <div className={styles.icon} style={{ color: 'var(--ff-color-brand-primary)' }}>&#x2714;</div>
+                        <h1 className={styles.title} style={{ color: 'var(--ff-color-brand-primary)' }}>Email Verified</h1>
+                        <p className={styles.subtitle}>
+                            You can close this tab.<br />
+                            Your other tab is taking you to the onboarding survey.
+                        </p>
+                    </div>
+                </div>
+            </main>
+        );
+    }
+
+    // ─── Verified state: show success, then redirect ───
+    if (verified) {
+        return (
+            <main className={styles.page}>
+                <div className={styles.container}>
+                    <div className={`card ${styles.card}`}>
+                        <div className={styles.icon} style={{ color: 'var(--ff-color-brand-primary)' }}>&#x2714;</div>
+                        <h1 className={styles.title} style={{ color: 'var(--ff-color-brand-primary)' }}>Email Verified</h1>
+                        <p className={styles.subtitle}>Taking you to onboarding...</p>
+                    </div>
+                </div>
+            </main>
+        );
+    }
+
+    // ─── Waiting for verification ───
     return (
         <main className={styles.page}>
             <div className={styles.container}>
@@ -116,5 +169,22 @@ export default function VerifyEmailPage() {
                 </div>
             </div>
         </main>
+    );
+}
+
+export default function VerifyEmailPage() {
+    return (
+        <Suspense fallback={
+            <main className={styles.page}>
+                <div className={styles.container}>
+                    <div className={`card ${styles.card}`}>
+                        <div className={styles.spinner} />
+                        <p>Loading...</p>
+                    </div>
+                </div>
+            </main>
+        }>
+            <VerifyEmailContent />
+        </Suspense>
     );
 }

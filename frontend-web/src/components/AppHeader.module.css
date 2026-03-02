@@ -1,4 +1,4 @@
-/* ── Global App Header — visible on all authenticated pages ─── */
+/* ── Global App Header — Desktop only (hidden on mobile) ──── */
 
 .topBar {
     position: fixed;
@@ -14,6 +14,17 @@
     backdrop-filter: blur(var(--ff-glass-blur));
     border-bottom: 1px solid var(--ff-glass-border);
     z-index: 100;
+}
+
+/* Hide on mobile — MobileNav handles navigation there */
+@media (max-width: 768px) {
+    .topBar {
+        display: none;
+    }
+
+    .menu {
+        display: none !important;
+    }
 }
 
 .logoLink {

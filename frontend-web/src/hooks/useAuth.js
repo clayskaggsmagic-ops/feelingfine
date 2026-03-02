@@ -21,6 +21,19 @@ export function AuthProvider({ children }) {
             const data = await api.get('/v1/auth/me');
             setProfile(data.user || data);
             setError(null);
+
+            // Auto-accept a pending invite (stored from /invite page, survives the signup flow)
+            const pendingInvite = localStorage.getItem('pendingInvite');
+            if (pendingInvite) {
+                try {
+                    await api.post(`/v1/community/invite/${pendingInvite}/accept`);
+                    console.log('[useAuth] Auto-accepted pending invite:', pendingInvite);
+                } catch (err) {
+                    console.error('[useAuth] Failed to accept pending invite:', err.message);
+                } finally {
+                    localStorage.removeItem('pendingInvite');
+                }
+            }
         } catch (err) {
             // 404 means user hasn't completed signup yet — that's OK
             if (err.status !== 404) {

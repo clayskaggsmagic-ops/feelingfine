@@ -79,12 +79,18 @@ export default function OnboardingPage() {
         const nextStart = pageEnd;
         if (nextStart < questions.length) {
             setCurrentIndex(nextStart);
+            window.scrollTo({ top: 0, behavior: 'instant' });
+            document.body.scrollTop = 0;
+            document.documentElement.scrollTop = 0;
         }
     }
 
     function goBack() {
         const prevStart = Math.max(0, pageStart - questionsPerPage);
         setCurrentIndex(prevStart);
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        document.body.scrollTop = 0;
+        document.documentElement.scrollTop = 0;
     }
 
     const isLastPage = pageEnd >= questions.length;

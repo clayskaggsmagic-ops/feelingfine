@@ -394,3 +394,45 @@
     opacity: 0.4;
     cursor: default;
 }
+
+/* ── Badges ──────────────────────────────────────────────────────────────── */
+.badgesGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.badgeCard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.25rem 1rem;
+    text-align: center;
+    background: var(--ff-color-bg-tertiary);
+    border: 1px solid rgba(59, 138, 122, 0.2);
+}
+
+.badgeIcon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.badgeIcon img {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+}
+
+.badgeName {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--ff-color-brand-primary);
+    margin-bottom: 0.25rem;
+}
+
+.badgeDesc {
+    font-size: 0.75rem;
+    color: var(--ff-color-text-secondary);
+    line-height: 1.3;
+}

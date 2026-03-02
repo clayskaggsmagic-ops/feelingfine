@@ -285,7 +285,56 @@ router.get('/report', requireAuth, async (req, res, next) => {
             dosCompleted: (day.completedDos?.length || 0) + (day.customDos?.length || 0),
         }));
 
-        console.log(`[tracking/report] uid: ${req.user.uid}, ${days} days, ${totalDosCompleted} dos, avg: ${avgFeelingScore}`);
+        // Streak calculation
+        let currentStreak = 0;
+        let d = new Date(now);
+        // check if they did anything today, if not, start checking from yesterday
+        const todayKey = getDateKey(d);
+        const todayData = history.find(day => day.dateKey === todayKey);
+        const todayDos = todayData ? (todayData.completedDos?.length || 0) + (todayData.customDos?.length || 0) : 0;
+
+        if (todayDos === 0) {
+            d.setDate(d.getDate() - 1);
+        }
+
+        while(true) {
+            const key = getDateKey(d);
+            const dayData = history.find(day => day.dateKey === key);
+            const dos = dayData ? (dayData.completedDos?.length || 0) + (dayData.customDos?.length || 0) : 0;
+            if (dos > 0) {
+                currentStreak++;
+                d.setDate(d.getDate() - 1);
+            } else {
+                break;
+            }
+        }
+
+        // Fetch badges
+        const { query } = await import('../services/dataConnect.js');
+        const badgesRes = await query(`
+            query($uid: String!) {
+                userBadges(where: { userId: { eq: $uid } }) {
+                    awardedAt
+                    badge {
+                        id
+                        name
+                        description
+                        iconUrl
+                    }
+                }
+            }
+        `, { uid: req.user.uid });
+
+        const badges = badgesRes.userBadges?.map(ub => ({
+            id: ub.badge.id,
+            name: ub.badge.name,
+            description: ub.badge.description,
+            iconUrl: ub.badge.iconUrl,
+            awardedAt: ub.awardedAt
+        })) || [];
+
+
+        console.log(`[tracking/report] uid: ${req.user.uid}, ${days} days, ${totalDosCompleted} dos, avg: ${avgFeelingScore}, streak: ${currentStreak}`);
 
         res.json({
             days,
@@ -295,6 +344,8 @@ router.get('/report', requireAuth, async (req, res, next) => {
             trend,
             cornerstoneTotals,
             dailyBreakdown,
+            currentStreak,
+            badges
         });
     } catch (err) {
         console.error('[tracking/report] Error:', err.message);

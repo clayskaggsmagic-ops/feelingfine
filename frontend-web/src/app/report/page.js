@@ -161,7 +161,27 @@ export default function ReportPage() {
                                 </span>
                                 <span className={styles.statLabel}>Trend</span>
                             </div>
+                            <div className={`card ${styles.statCard}`}>
+                                <span className={styles.statNum}>{reportData?.currentStreak || 0}</span>
+                                <span className={styles.statLabel}>Day Streak🔥</span>
+                            </div>
                         </div>
+
+                        {/* ─── Badges ─── */}
+                        {(reportData?.badges && reportData.badges.length > 0) && (
+                            <section className={styles.section}>
+                                <h2 className={styles.sectionTitle}>Achievements</h2>
+                                <div className={styles.badgesGrid}>
+                                    {reportData.badges.map(b => (
+                                        <div key={b.id} className={`card ${styles.badgeCard}`}>
+                                            <div className={styles.badgeIcon}>{b.iconUrl ? <img src={b.iconUrl} alt={b.name} /> : '🏅'}</div>
+                                            <div className={styles.badgeName}>{b.name}</div>
+                                            <div className={styles.badgeDesc}>{b.description}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
 
                         {/* ─── Dos Bar Chart ─── */}
                         <section className={styles.section}>

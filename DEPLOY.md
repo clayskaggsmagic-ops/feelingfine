@@ -18,6 +18,53 @@
 
 ---
 
+## 0. Quick Redeploy (copy-paste)
+
+> Already set up? Just need to push code changes? Use these.
+
+### Backend → Cloud Run
+
+```bash
+cd /Users/clayskaggs/Developer/feelingfine/backend && \
+gcloud run deploy feelingfine-api \
+  --source . \
+  --region us-central1 \
+  --platform managed \
+  --allow-unauthenticated \
+  --set-env-vars "NODE_ENV=production,FIREBASE_PROJECT_ID=feelingfine-b4106,CORS_ALLOWED_ORIGINS=https://feelingfine.org;https://www.feelingfine.org;https://feelingfine-web.web.app;https://admin.feelingfine.org;https://feelingfine-admin.web.app,RESEND_API_KEY=YOUR_RESEND_API_KEY,FROM_EMAIL=Art <art@feelingfine.org>,GEMINI_API_KEY=YOUR_GEMINI_API_KEY"
+```
+
+> ⚠️ Replace `YOUR_RESEND_API_KEY` and `YOUR_GEMINI_API_KEY` with your real keys before running.
+
+### Frontend-Web → Firebase Hosting
+
+```bash
+cd /Users/clayskaggs/Developer/feelingfine/frontend-web && \
+npm run build && \
+cd /Users/clayskaggs/Developer/feelingfine && \
+firebase deploy --only hosting:web --project feelingfine-b4106
+```
+
+### Frontend-Admin → Firebase Hosting
+
+```bash
+cd /Users/clayskaggs/Developer/feelingfine/frontend-admin && \
+npm run build && \
+cd /Users/clayskaggs/Developer/feelingfine && \
+firebase deploy --only hosting:admin --project feelingfine-b4106
+```
+
+### Both Frontends at Once
+
+```bash
+cd /Users/clayskaggs/Developer/feelingfine/frontend-web && npm run build && \
+cd /Users/clayskaggs/Developer/feelingfine/frontend-admin && npm run build && \
+cd /Users/clayskaggs/Developer/feelingfine && \
+firebase deploy --only hosting --project feelingfine-b4106
+```
+
+---
+
 ## 1. Prerequisites
 
 Before you start, make sure you have:

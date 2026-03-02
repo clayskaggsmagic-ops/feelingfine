@@ -4,7 +4,8 @@
 
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
-import { query, mutate, insert } from '../services/dataConnect.js';
+import { query, mutate, insert, getUserByUid } from '../services/dataConnect.js';
+import { sendPushNotification } from './push.js';
 
 const router = Router();
 
@@ -19,6 +20,13 @@ router.post('/friends/request', requireAuth, async (req, res, next) => {
             `mutation($data: FriendRequest_Data!) { friendRequest_insert(data: $data) { id } }`,
             { data: { fromUserId: req.user.uid, toUserId, status: 'pending' } }
         );
+
+        // Send push notification
+        const fromUser = await getUserByUid(req.user.uid);
+        if (fromUser) {
+            await sendPushNotification(toUserId, 'New Friend Request', `${fromUser.displayName || 'Someone'} sent you a friend request.`, { type: 'friend_request' });
+        }
+
         res.status(201).json(result);
     } catch (err) { next(err); }
 });
@@ -92,6 +100,18 @@ router.post('/groups/:id/join', requireAuth, async (req, res, next) => {
             `mutation($data: GroupMember_Data!) { groupMember_insert(data: $data) { id } }`,
             { data: { groupId: req.params.id, userId: req.user.uid } }
         );
+
+        // Notify group creator that someone joined
+        const groupRes = await query(
+            `query($id: UUID!) { communityGroup(id: $id) { createdById name } }`,
+            { id: req.params.id }
+        );
+        const group = groupRes.communityGroup;
+        if (group && group.createdById !== req.user.uid) {
+            const joiningUser = await getUserByUid(req.user.uid);
+            await sendPushNotification(group.createdById, 'New Group Member', `${joiningUser?.displayName || 'Someone'} joined your group "${group.name}".`, { type: 'group_join', groupId: req.params.id });
+        }
+
         res.json({ joined: true });
     } catch (err) { next(err); }
 });
@@ -119,11 +139,31 @@ router.get('/messages', requireAuth, async (req, res, next) => {
         if (groupId) {
             const data = await query(
                 `query($gid: UUID!) { chatMessages(where: { recipientGroupId: { eq: $gid } }, orderBy: [{ createdAt: ASC }]) {
-                    id text createdAt sender { uid displayName }
+                    id text createdAt sender { id displayName }
                 }}`,
                 { gid: groupId }
             );
             messages = data.chatMessages || [];
+
+            // fetch read receipts for group messages
+            if (messages.length > 0) {
+                 const messageIds = messages.map(m => m.id);
+                 const receiptsData = await query(`
+                    query($msgIds: [UUID!]!) {
+                        messageReadReceipts(where: { messageId: { in: $msgIds } }) {
+                            messageId
+                            user { id displayName }
+                            readAt
+                        }
+                    }
+                 `, { msgIds: messageIds });
+
+                 const receipts = receiptsData.messageReadReceipts || [];
+                 messages.forEach(m => {
+                     m.readBy = receipts.filter(r => r.messageId === m.id).map(r => r.user.displayName);
+                 });
+            }
+
         } else if (friendId) {
             // Messages between two users (both directions)
             const data = await query(
@@ -133,13 +173,64 @@ router.get('/messages', requireAuth, async (req, res, next) => {
                         { senderId: { eq: $uid2 }, recipientUserId: { eq: $uid1 } }
                     ]
                 }, orderBy: [{ createdAt: ASC }]) {
-                    id text createdAt sender { uid displayName }
+                    id text createdAt sender { id displayName }
                 }}`,
                 { uid1: uid, uid2: friendId }
             );
             messages = data.chatMessages || [];
+
+             // fetch read receipts
+            if (messages.length > 0) {
+                 const messageIds = messages.map(m => m.id);
+                 const receiptsData = await query(`
+                    query($msgIds: [UUID!]!) {
+                        messageReadReceipts(where: { messageId: { in: $msgIds } }) {
+                            messageId
+                            user { id displayName }
+                            readAt
+                        }
+                    }
+                 `, { msgIds: messageIds });
+
+                 const receipts = receiptsData.messageReadReceipts || [];
+                 messages.forEach(m => {
+                     m.readBy = receipts.filter(r => r.messageId === m.id).map(r => r.user.displayName);
+                 });
+            }
         }
         res.json({ messages });
+    } catch (err) { next(err); }
+});
+
+router.post('/messages/read', requireAuth, async (req, res, next) => {
+    try {
+        const { messageIds } = req.body;
+        if (!messageIds || !Array.isArray(messageIds)) {
+             return res.status(400).json({ error: 'messageIds array required' });
+        }
+
+        const uid = req.user.uid;
+
+        // Mark as read (upsert to avoid duplicates)
+        for (const msgId of messageIds) {
+             const existingRes = await query(`
+                query($msgId: UUID!, $uid: String!) {
+                    messageReadReceipts(where: { messageId: { eq: $msgId }, userId: { eq: $uid } }) {
+                        id
+                    }
+                }
+             `, { msgId, uid });
+
+             if (!existingRes.messageReadReceipts?.length) {
+                 await mutate(`
+                    mutation($data: MessageReadReceipt_Data!) {
+                        messageReadReceipt_insert(data: $data) { id }
+                    }
+                 `, { data: { messageId: msgId, userId: uid } });
+             }
+        }
+
+        res.json({ success: true });
     } catch (err) { next(err); }
 });
 

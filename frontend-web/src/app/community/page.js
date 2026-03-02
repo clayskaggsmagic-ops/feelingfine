@@ -99,9 +99,19 @@ function FriendsTab({ uid }) {
         const param = chatOpen.type === 'group' ? `groupId=${chatOpen.id}` : `friendId=${chatOpen.id}`;
         try {
             const data = await api.get(`/v1/community/messages?${param}`);
-            setMessages(data.messages || []);
+            const fetchedMessages = data.messages || [];
+            setMessages(fetchedMessages);
+
+            // Mark unread messages as read
+            const unreadIds = fetchedMessages
+                .filter(m => m.sender?.id !== uid && (!m.readBy || !m.readBy.includes(user.displayName)))
+                .map(m => m.id);
+
+            if (unreadIds.length > 0) {
+                api.post('/v1/community/messages/read', { messageIds: unreadIds }).catch(() => {});
+            }
         } catch { }
-    }, [chatOpen]);
+    }, [chatOpen, uid, user]);
 
     useEffect(() => {
         fetchMessages();
@@ -213,10 +223,17 @@ function FriendsTab({ uid }) {
                 <h3 style={{ margin: '0.75rem 0' }}>💬 {chatOpen.name}</h3>
                 <div className={styles.chatBox}>
                     {messages.length === 0 ? <p className={styles.emptyMsg}>No messages yet. Say hello!</p> : messages.map(m => (
-                        <div key={m.id} className={`${styles.chatBubble} ${m.sender?.uid === uid ? styles.chatBubbleMine : ''}`}>
+                        <div key={m.id} className={`${styles.chatBubble} ${m.sender?.id === uid ? styles.chatBubbleMine : ''}`}>
                             <span className={styles.chatSender}>{m.sender?.displayName || 'User'}</span>
                             <p>{m.text}</p>
-                            <span className={styles.chatTime}>{new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            <div className={styles.chatMeta}>
+                                <span className={styles.chatTime}>{new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                {m.sender?.id === uid && m.readBy && m.readBy.length > 0 && (
+                                    <span className={styles.chatReadReceipt}>
+                                        Read by {m.readBy.filter(name => name !== user.displayName).join(', ')}
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     ))}
                     <div ref={bottomRef} />

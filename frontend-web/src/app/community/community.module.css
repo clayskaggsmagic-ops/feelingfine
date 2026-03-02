@@ -254,12 +254,26 @@
     line-height: 1.4;
 }
 
+.chatMeta {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+}
+
 .chatTime {
     font-size: 0.65rem;
     opacity: 0.6;
     display: block;
     text-align: right;
-    margin-top: 0.2rem;
+}
+
+.chatReadReceipt {
+    font-size: 0.65rem;
+    color: inherit;
+    opacity: 0.9;
+    font-style: italic;
 }
 
 .chatInput {

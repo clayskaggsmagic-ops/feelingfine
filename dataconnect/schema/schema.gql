@@ -185,6 +185,37 @@ type ChatMessage @table {
   createdAt: Timestamp! @default(expr: "request.time")
 }
 
+# ── Message Read Receipts ────────────────────────────────────────────────────
+type MessageReadReceipt @table {
+  message: ChatMessage!
+  user: User!
+  readAt: Timestamp! @default(expr: "request.time")
+}
+
+# ── Badges / Achievements ────────────────────────────────────────────────────
+type Badge @table {
+  id: String! @col(dataType: "varchar(50)")
+  name: String! @col(dataType: "varchar(100)")
+  description: String!
+  iconUrl: String
+  criteria: String! # e.g. "streak_7", "first_post"
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+type UserBadge @table {
+  user: User!
+  badge: Badge!
+  awardedAt: Timestamp! @default(expr: "request.time")
+}
+
+# ── Device Tokens (Push Notifications) ───────────────────────────────────────
+type DeviceToken @table {
+  user: User!
+  token: String! @col(dataType: "varchar(255)")
+  deviceType: String @col(dataType: "varchar(50)")
+  lastUsedAt: Timestamp! @default(expr: "request.time")
+}
+
 # ── Friend Requests ──────────────────────────────────────────────────────────
 type FriendRequest @table {
   fromUser: User!

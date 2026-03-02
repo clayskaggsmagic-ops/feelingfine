@@ -12,6 +12,7 @@ export default function SettingsPage() {
     const { user, profile, loading, refreshProfile } = useAuth();
     const router = useRouter();
     const [displayName, setDisplayName] = useState('');
+    const [photoURL, setPhotoURL] = useState('');
     const [emailOptIn, setEmailOptIn] = useState(true);
     const [dailyReminder, setDailyReminder] = useState(true);
     const [weeklyReport, setWeeklyReport] = useState(true);
@@ -20,12 +21,14 @@ export default function SettingsPage() {
     const [timezone, setTimezone] = useState('');
     const [saving, setSaving] = useState(false);
     const [toast, setToast] = useState('');
+    const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
     useEffect(() => { if (!loading && !user) router.push('/login'); }, [loading, user, router]);
 
     useEffect(() => {
         if (profile) {
             setDisplayName(profile.displayName || '');
+            setPhotoURL(profile.photoURL || '');
             setEmailOptIn(profile.emailOptIn !== false);
             setDailyReminder(profile.dailyReminder !== false);
             setWeeklyReport(profile.weeklyReport !== false);
@@ -61,6 +64,56 @@ export default function SettingsPage() {
     function showToast(msg) { setToast(msg); setTimeout(() => setToast(''), 3000); }
 
     // Save ALL settings in one call
+    async function handlePhotoUpload(e) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            showToast('Error: Please select an image file');
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            showToast('Error: Image must be less than 5MB');
+            return;
+        }
+
+        setUploadingPhoto(true);
+        try {
+            // Get file extension
+            const ext = file.name.split('.').pop() || 'jpg';
+
+            // 1. Get signed URL from backend
+            const { uploadUrl, publicUrl } = await api.get(`/v1/storage/upload-url?ext=${ext}`);
+
+            // 2. Upload directly to Firebase Storage using the signed URL
+            const uploadRes = await fetch(uploadUrl, {
+                method: 'PUT',
+                body: file,
+                headers: {
+                    'Content-Type': file.type,
+                }
+            });
+
+            if (!uploadRes.ok) {
+                throw new Error('Upload failed');
+            }
+
+            // 3. Update profile with the new public URL
+            setPhotoURL(publicUrl);
+            await api.patch('/v1/auth/me', { photoURL: publicUrl });
+            await refreshProfile();
+            showToast('Profile photo updated!');
+
+        } catch (err) {
+            console.error('Photo upload error:', err);
+            showToast('Error uploading photo');
+        } finally {
+            setUploadingPhoto(false);
+            e.target.value = null; // reset input
+        }
+    }
+
     async function handleSave() {
         setSaving(true);
         try {
@@ -123,6 +176,30 @@ export default function SettingsPage() {
                 {/* Profile */}
                 <section className={styles.card}>
                     <h2 className={styles.sectionTitle}>Profile</h2>
+
+                    <div className={styles.photoSection}>
+                        <div className={styles.avatarWrap}>
+                            {photoURL ? (
+                                <img src={photoURL} alt="Profile" className={styles.avatar} />
+                            ) : (
+                                <div className={styles.avatarPlaceholder}>
+                                    {displayName ? displayName.charAt(0).toUpperCase() : '?'}
+                                </div>
+                            )}
+                            {uploadingPhoto && <div className={styles.avatarLoading}><div className="spinner-small" /></div>}
+                        </div>
+                        <label className={styles.uploadBtn}>
+                            {uploadingPhoto ? 'Uploading...' : 'Change Photo'}
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handlePhotoUpload}
+                                disabled={uploadingPhoto}
+                                style={{ display: 'none' }}
+                            />
+                        </label>
+                    </div>
+
                     <label className={styles.field}>
                         <span>Display Name</span>
                         <input value={displayName} onChange={e => setDisplayName(e.target.value)} />

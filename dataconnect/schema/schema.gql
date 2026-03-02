@@ -23,6 +23,12 @@ type User @table {
   timezone: String @col(dataType: "varchar(50)")
   photoURL: String
   walkthroughCompleted: Boolean @default(expr: "false")
+
+  # Trial System
+  trialStartedAt: Timestamp @default(expr: "request.time")
+  trialStatus: String @col(dataType: "varchar(20)") @default(expr: "'active'") # 'active', 'failed', 'graduated', 'paid'
+  warningsSent: Int @default(expr: "0")
+
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
 }

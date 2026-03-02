@@ -432,6 +432,7 @@ router.delete('/webinars/:id', requireAuth, requireAdmin, async (req, res, next)
 // TRIGGER DAILY EMAIL (for Cloud Scheduler or manual use)
 // ─────────────────────────────────────────────────────────────────────────────
 import { runDailyEmail } from '../jobs/dailyEmailJob.js';
+import { evaluateTrials } from '../jobs/trialJob.js';
 
 router.post('/trigger-email', requireAuth, requireAdmin, async (req, res, next) => {
     try {
@@ -440,6 +441,17 @@ router.post('/trigger-email', requireAuth, requireAdmin, async (req, res, next) 
         res.json({ success: true, ...result });
     } catch (err) {
         console.error('[admin/trigger-email] Error:', err.message);
+        next(err);
+    }
+});
+
+router.post('/trigger-trial-eval', requireAuth, requireAdmin, async (req, res, next) => {
+    try {
+        console.log('[admin/trigger-trial-eval] Manual trigger by:', req.user.email);
+        await evaluateTrials();
+        res.json({ success: true, message: 'Trial evaluation triggered' });
+    } catch (err) {
+        console.error('[admin/trigger-trial-eval] Error:', err.message);
         next(err);
     }
 });

@@ -108,6 +108,8 @@ export async function updateUser(uid, updates) {
         timezone: 'String',
         walkthroughCompleted: 'Boolean',
         photoURL: 'String',
+        trialStatus: 'String',
+        warningsSent: 'Int',
     };
 
     const fields = Object.keys(updates).filter(k => k in FIELD_TYPES);

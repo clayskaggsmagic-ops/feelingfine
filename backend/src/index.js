@@ -94,10 +94,11 @@ app.use((_req, res) => {
 // Global error handler
 app.use(errorHandler);
 
-// Initialize daily email cron job
+// Initialize cron jobs
 import { initDailyEmailJob } from './jobs/dailyEmailJob.js';
+import { evaluateTrials } from './jobs/trialJob.js';
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
     console.log(`\n  Feeling Fine API`);
     console.log(`  ────────────────────────`);
     console.log(`  Port:        ${PORT}`);
@@ -107,6 +108,17 @@ app.listen(PORT, () => {
 
     // Start cron jobs after server is ready
     initDailyEmailJob();
+
+    try {
+        const { default: cron } = await import('node-cron');
+        // Run trial evaluation every day at 12:00 AM (midnight)
+        cron.schedule('0 0 * * *', () => {
+            evaluateTrials();
+        });
+        console.log(`[trialEval] Cron scheduled: 0 0 * * * (runs daily at midnight)`);
+    } catch {
+        console.warn('[trialEval] node-cron not installed — trial job disabled.');
+    }
 });
 
 export default app;

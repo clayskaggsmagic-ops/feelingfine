@@ -99,8 +99,16 @@ export default function DashboardPage() {
             router.push('/verify-email');
         } else if (profile && !profile.programStartDate) {
             router.push('/onboarding');
+        } else if (profile && profile.trialStatus === 'failed') {
+            // Kick them out if trial failed
+            alert('Maybe you\'re not ready. Let\'s stop now. You can apply again when you\'re ready.');
+            logout();
+            router.push('/');
+        } else if (profile && profile.trialStatus === 'graduated') {
+            // They graduated, alert and log them out or redirect to upgrade page (not implemented yet)
+            alert('Amazing work! You graduated your trial. Contact admin to join the fee-based program.');
         }
-    }, [authLoading, isAuthenticated, emailVerified, profile, router]);
+    }, [authLoading, isAuthenticated, emailVerified, profile, router, logout]);
 
     // Fetch daily dose
     const fetchDose = useCallback(async () => {

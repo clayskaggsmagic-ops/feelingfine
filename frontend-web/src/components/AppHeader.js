@@ -18,8 +18,11 @@ export default function AppHeader() {
     const pathname = usePathname();
     const [menuOpen, setMenuOpen] = useState(false);
 
+    // Normalize trailing slash for comparison
+    const normalizedPath = pathname.endsWith('/') && pathname !== '/' ? pathname.slice(0, -1) : pathname;
+
     // Don't show on public/unauthenticated routes
-    if (!user || PUBLIC_ROUTES.includes(pathname)) return null;
+    if (!user || PUBLIC_ROUTES.includes(normalizedPath)) return null;
 
     return (
         <>

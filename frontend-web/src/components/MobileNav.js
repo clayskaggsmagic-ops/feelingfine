@@ -19,7 +19,12 @@ export default function MobileNav() {
 
     if (!user) return null;
 
-    const isWellness = pathname === '/dashboard' || pathname === '/';
+    // Hide nav on pre-authenticated routes
+    const PUBLIC_ROUTES = ['/', '/login', '/signup', '/onboarding', '/verify-email', '/invite', '/privacy', '/terms'];
+    const normalizedPath = pathname.endsWith('/') && pathname !== '/' ? pathname.slice(0, -1) : pathname;
+    if (PUBLIC_ROUTES.includes(normalizedPath)) return null;
+
+    const isWellness = normalizedPath === '/dashboard';
 
     async function handleLogout() {
         await signOut(auth);

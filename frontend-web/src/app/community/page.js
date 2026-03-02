@@ -75,6 +75,7 @@ function FriendsTab({ uid }) {
     const [groupName, setGroupName] = useState('');
     const [groupDesc, setGroupDesc] = useState('');
     const [toast, setToast] = useState('');
+    const [inviteLink, setInviteLink] = useState(''); // visible link for desktop
     // Chat state — opens inline when clicking a friend or group
     const [chatOpen, setChatOpen] = useState(null); // { type: 'friend'|'group', id, name }
     const [messages, setMessages] = useState([]);
@@ -154,11 +155,13 @@ function FriendsTab({ uid }) {
         try {
             const { code } = await api.post('/v1/community/invite', { type: 'friend' });
             const url = `${window.location.origin}/invite?code=${code}`;
-            if (navigator.share) {
+            const isMobile = window.matchMedia('(max-width: 768px)').matches;
+            if (isMobile && navigator.share) {
                 await navigator.share({ title: 'Join me on Feeling Fine!', url });
             } else {
+                setInviteLink(url);
                 await navigator.clipboard.writeText(url);
-                showToast('Invite link copied!');
+                showToast('Link copied to clipboard!');
             }
         } catch (err) {
             console.error('[community] inviteFriend error:', err);
@@ -170,13 +173,22 @@ function FriendsTab({ uid }) {
         try {
             const { code } = await api.post('/v1/community/invite', { type: 'group', groupId });
             const url = `${window.location.origin}/invite?code=${code}`;
-            if (navigator.share) {
+            const isMobile = window.matchMedia('(max-width: 768px)').matches;
+            if (isMobile && navigator.share) {
                 await navigator.share({ title: 'Join our group on Feeling Fine!', url });
             } else {
+                setInviteLink(url);
                 await navigator.clipboard.writeText(url);
-                showToast('Group invite link copied!');
+                showToast('Group link copied to clipboard!');
             }
         } catch (err) { showToast('Error creating invite'); }
+    }
+
+    async function copyInviteLink() {
+        try {
+            await navigator.clipboard.writeText(inviteLink);
+            showToast('Copied!');
+        } catch { showToast('Failed to copy'); }
     }
 
     async function sendMessage() {
@@ -224,8 +236,20 @@ function FriendsTab({ uid }) {
             {/* Invite a friend */}
             <div className={styles.sectionBox} style={{ marginBottom: '1rem' }}>
                 <button onClick={inviteFriend} className={styles.inviteBtn}>
-                    📩 Invite a Friend
+                    Invite a Friend
                 </button>
+                {inviteLink && (
+                    <div className={styles.inviteLinkRow}>
+                        <input
+                            readOnly
+                            value={inviteLink}
+                            className={styles.inviteLinkInput}
+                            onClick={e => e.target.select()}
+                        />
+                        <button onClick={copyInviteLink} className={styles.copyBtn}>Copy</button>
+                        <button onClick={() => setInviteLink('')} className={styles.closeLinkBtn} aria-label="Close">✕</button>
+                    </div>
+                )}
             </div>
 
             {/* Add friend by ID */}

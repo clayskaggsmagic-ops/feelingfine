@@ -84,15 +84,23 @@ export default function DashboardPage() {
     const [expandedCornerstone, setExpandedCornerstone] = useState(null);
     const [cornerstoneDos, setCornerstoneDos] = useState({});
 
-    // Redirect if not authenticated or email not verified
+    // Daily check-in survey popup state
+    const [checkinSurvey, setCheckinSurvey] = useState(null);
+    const [checkinQuestions, setCheckinQuestions] = useState([]);
+    const [checkinAnswer, setCheckinAnswer] = useState(null);
+    const [checkinSubmitting, setCheckinSubmitting] = useState(false);
+
+    // Redirect if not authenticated, email not verified, or onboarding not completed
     useEffect(() => {
         if (authLoading) return;
         if (!isAuthenticated) {
             router.push('/login');
         } else if (!emailVerified) {
             router.push('/verify-email');
+        } else if (profile && !profile.programStartDate) {
+            router.push('/onboarding');
         }
-    }, [authLoading, isAuthenticated, emailVerified, router]);
+    }, [authLoading, isAuthenticated, emailVerified, profile, router]);
 
     // Fetch daily dose
     const fetchDose = useCallback(async () => {
@@ -142,13 +150,31 @@ export default function DashboardPage() {
         }
     }, []);
 
+    // Fetch pending daily check-in surveys
+    const fetchCheckinSurvey = useCallback(async () => {
+        try {
+            const data = await api.get('/v1/surveys/pending');
+            const checkin = data.surveys?.find(s => s.type === 'daily_checkin');
+            if (checkin) {
+                setCheckinSurvey(checkin);
+                const qs = typeof checkin.questions === 'string'
+                    ? JSON.parse(checkin.questions)
+                    : checkin.questions || [];
+                setCheckinQuestions(qs);
+            }
+        } catch (err) {
+            console.error('[dashboard] Error fetching check-in survey:', err);
+        }
+    }, []);
+
     useEffect(() => {
         if (isAuthenticated) {
             fetchDose();
             fetchDos();
             fetchTodayTracking();
+            fetchCheckinSurvey();
         }
-    }, [isAuthenticated, fetchDose, fetchDos, fetchTodayTracking]);
+    }, [isAuthenticated, fetchDose, fetchDos, fetchTodayTracking, fetchCheckinSurvey]);
 
     async function handleFeelingSubmit(score) {
         setFeelingScore(score);
@@ -187,6 +213,30 @@ export default function DashboardPage() {
                 return next;
             });
         }
+    }
+
+    async function handleCheckinSubmit() {
+        if (!checkinSurvey) return;
+        setCheckinSubmitting(true);
+        try {
+            const answersArray = checkinAnswer != null
+                ? [{ questionIndex: 0, value: checkinAnswer }]
+                : [];
+            await api.post(`/v1/surveys/${checkinSurvey.id}/submit`, { answers: answersArray });
+            setCheckinSurvey(null);
+            setCheckinQuestions([]);
+            setCheckinAnswer(null);
+        } catch (err) {
+            console.error('[dashboard] Check-in submit error:', err);
+        } finally {
+            setCheckinSubmitting(false);
+        }
+    }
+
+    function dismissCheckin() {
+        setCheckinSurvey(null);
+        setCheckinQuestions([]);
+        setCheckinAnswer(null);
     }
 
     async function handleAddCustomDo() {
@@ -236,6 +286,65 @@ export default function DashboardPage() {
 
     return (
         <>
+            {/* ─── Daily Check-in Survey Popup ─── */}
+            {checkinSurvey && checkinQuestions.length > 0 && (
+                <div className={styles.bannerOverlay}>
+                    <div className={styles.bannerCard}>
+                        <button className={styles.bannerClose} onClick={dismissCheckin} aria-label="Close survey">
+                            &#x2715;
+                        </button>
+                        <h2 className={styles.bannerTitle}>{checkinSurvey.title}</h2>
+                        {checkinQuestions.map((q, i) => (
+                            <div key={q.id || i}>
+                                <p className={styles.bannerQuestion}>{q.text}</p>
+                                {(q.type === 'scale') && (
+                                    <div className={styles.feelingRow} style={{ justifyContent: 'center', marginBottom: 'var(--ff-space-md)' }}>
+                                        {Array.from({ length: (q.max || 10) - (q.min || 1) + 1 }, (_, j) => (q.min || 1) + j).map(n => (
+                                            <button
+                                                key={n}
+                                                className={`${styles.feelingCircle} ${checkinAnswer === n ? styles.feelingSelected : ''}`}
+                                                onClick={() => setCheckinAnswer(n)}
+                                            >
+                                                {n}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                                {(q.type === 'yes_no' || q.type === 'single_choice') && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: 'var(--ff-space-md)' }}>
+                                        {(q.options || []).map(opt => (
+                                            <button
+                                                key={opt}
+                                                className={`${styles.feelingCircle} ${checkinAnswer === opt ? styles.feelingSelected : ''}`}
+                                                style={{ width: 'auto', borderRadius: 'var(--ff-radius-sm)', padding: '8px 16px', height: 'auto', minHeight: 'var(--ff-touch-min)' }}
+                                                onClick={() => setCheckinAnswer(opt)}
+                                            >
+                                                {opt}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                                {q.type === 'free_text' && (
+                                    <textarea
+                                        style={{ width: '100%', minHeight: '80px', padding: '12px', borderRadius: 'var(--ff-radius-sm)', border: '1px solid #e2e8f0', fontFamily: 'inherit', fontSize: 'inherit', resize: 'vertical', marginBottom: 'var(--ff-space-md)' }}
+                                        placeholder="Type your answer..."
+                                        value={checkinAnswer || ''}
+                                        onChange={(e) => setCheckinAnswer(e.target.value)}
+                                    />
+                                )}
+                            </div>
+                        ))}
+                        <button
+                            className={`btn-primary ${styles.bannerCta}`}
+                            onClick={handleCheckinSubmit}
+                            disabled={checkinSubmitting}
+                        >
+                            {checkinSubmitting ? 'Saving...' : 'Submit'}
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* ─── Pop-up Banner (Week 1) ─── */}
             {bannerVisible && !bannerDismissed && doseData?.dose?.banner && (
                 <div className={styles.bannerOverlay}>
